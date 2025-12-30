@@ -1,0 +1,28 @@
+services:
+  bot:
+    # 既指定 build 又指定 image，构建时会打上此标签，拉取时也会用此标签
+    build: .
+    image: yingxiaomo/homeops:latest
+    container_name: homeops_bot
+    restart: unless-stopped
+    env_file:
+      - .env
+    # 使用 host 模式方便 OpenWrt/局域网探测
+    network_mode: host
+    volumes:
+      - ./data:/app/data
+      - ./config:/app/config
+      - ./plugins:/app/plugins
+
+  # 自动更新服务
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - TZ=Asia/Shanghai
+    # --interval 300: 每 5 分钟检查一次
+    # --cleanup: 更新后删除旧镜像，节省空间
+    command: --interval 300 --cleanup

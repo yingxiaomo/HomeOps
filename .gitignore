@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+env/
+venv/
+ENV/
+
+# Sensitive Information
+.env
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Project Specific
+data/
+logs/
+*.log
+config/*.json
+
+# Docker
+.dockerignore
+
+# AI & Dev Docs (Local only)
+.ai.md
+.geminiignore
