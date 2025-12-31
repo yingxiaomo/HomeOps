@@ -92,7 +92,8 @@ services:
     image: yingxiaomo/homeops:latest 
     container_name: homeops_bot
     restart: unless-stopped
-    env_file: .env
+    env_file:
+      - .env
     # 使用 host 模式以直接访问局域网设备 (OpenWrt)
     network_mode: host 
     volumes:
@@ -100,16 +101,18 @@ services:
       # - ./config:/app/config   # ⚠️ 注意：仅在使用 git clone 完整下载源码时才挂载此目录，否则会导致报错
       # - ./plugins:/app/plugins # ⚠️ 注意：仅在使用 git clone 完整下载源码时才挂载此目录
 
-  # 自动更新服务 (每5分钟检查一次)
+  # 自动更新服务
   watchtower:
     image: containrrr/watchtower
     container_name: watchtower
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 300 --cleanup
     environment:
       - TZ=Asia/Shanghai
+    # --interval 300: 每 5 分钟检查一次
+    # --cleanup: 更新后删除旧镜像，节省空间
+    command: --interval 300 --cleanup
 ```
 
 **4. 启动服务**
