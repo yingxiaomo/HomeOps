@@ -6,7 +6,6 @@ from config.config import Config
 PERM_FILE = "data/permissions.json"
 logger = logging.getLogger(__name__)
 
-# Ensure data dir exists
 if not os.path.exists("data"):
     os.makedirs("data")
 
@@ -46,7 +45,6 @@ def revoke_permission(user_id, feature):
     
     if str_id in perms and feature in perms[str_id]:
         perms[str_id].remove(feature)
-        # Clean up empty users
         if not perms[str_id]:
             del perms[str_id]
         save_permissions(perms)
@@ -54,7 +52,6 @@ def revoke_permission(user_id, feature):
     return False
 
 def has_permission(user_id, feature):
-    # Admin always has permission
     if user_id == Config.ADMIN_ID:
         return True
         

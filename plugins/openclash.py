@@ -10,36 +10,41 @@ from utils.permissions import is_admin
 
 logger = logging.getLogger(__name__)
 
+_clash_session = None
+
 async def api_request(method, endpoint, json_data=None):
     base_url = Config.OPENCLASH_API_URL
     secret = Config.OPENCLASH_API_SECRET
     headers = {"Authorization": f"Bearer {secret}"} if secret else {}
-    
-    async with aiohttp.ClientSession() as session:
-        url = f"{base_url}{endpoint}"
-        try:
-            async with session.request(method, url, headers=headers, json=json_data, proxy=None) as resp:
-                if resp.status == 204:
-                    return True
-                return await resp.json()
-        except Exception as e:
-            logger.error(f"OpenClash API Error [{method} {url}]: {e}")
-            return None
+    global _clash_session
+    if _clash_session is None:
+        _clash_session = aiohttp.ClientSession()
+    url = f"{base_url}{endpoint}"
+    try:
+        async with _clash_session.request(method, url, headers=headers, json=json_data, proxy=None) as resp:
+            if resp.status == 204:
+                return True
+            return await resp.json()
+    except Exception as e:
+        logger.error(f"OpenClash API Error [{method} {url}]: {e}")
+        return None
 
 async def get_traffic_snapshot():
     base_url = Config.OPENCLASH_API_URL
     secret = Config.OPENCLASH_API_SECRET
     headers = {"Authorization": f"Bearer {secret}"} if secret else {}
 
-    async with aiohttp.ClientSession() as session:
-        url = f"{base_url}/traffic"
-        try:
-            async with session.ws_connect(url, headers=headers, proxy=None, timeout=3.0) as ws:
-                msg = await ws.receive_json(timeout=2.0)
-                return msg
-        except Exception as e:
-            logger.error(f"OpenClash WS Error: {e}")
-            return None
+    global _clash_session
+    if _clash_session is None:
+        _clash_session = aiohttp.ClientSession()
+    url = f"{base_url}/traffic"
+    try:
+        async with _clash_session.ws_connect(url, headers=headers, proxy=None, timeout=3.0) as ws:
+            msg = await ws.receive_json(timeout=2.0)
+            return msg
+    except Exception as e:
+        logger.error(f"OpenClash WS Error: {e}")
+        return None
 
 async def clash_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -55,7 +60,7 @@ async def clash_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("📊 状态", callback_data="clash_status"),
          InlineKeyboardButton("🌍 节点", callback_data="clash_groups")],
         [InlineKeyboardButton("🧰 工具箱", callback_data="clash_tools")],
-        [InlineKeyboardButton("🔙 返回", callback_data="start_main")]
+        [InlineKeyboardButton("🔙 返回", callback_data="clash_exit")]
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     msg = f"🚀 **OpenClash 面板**"
@@ -380,7 +385,7 @@ async def clash_set_node(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await query.answer("Failed to switch.")
 
-async def clash_test_all_nodes(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def clash_speedtest_all(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     group_name = query.data.replace("clash_testall_", "")
     
@@ -399,7 +404,7 @@ async def clash_test_all_nodes(update: Update, context: ContextTypes.DEFAULT_TYP
     tasks = [test_node(name) for name in all_nodes]
     await asyncio.gather(*tasks)
     
-    await clash_list_nodes(update, context, group_name_override=group_name)
+    await query.edit_message_text(txt, reply_markup=InlineKeyboardMarkup(keyboard))
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -408,6 +413,21 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     if data == "clash_main":
         await clash_menu(update, context)
+    elif data == "clash_exit":
+        try:
+            if _clash_session:
+                await _clash_session.close()
+        except Exception:
+            pass
+        _clash_session = None
+        k = [
+            [InlineKeyboardButton("🧠 AI 助手", callback_data="ai_mode_start")],
+            [InlineKeyboardButton("🚀 OpenClash", callback_data="clash_main"),
+             InlineKeyboardButton("📟 OpenWrt", callback_data="wrt_main")],
+            [InlineKeyboardButton("📧 临时邮箱", callback_data="mail_main"),
+             InlineKeyboardButton("🖼️ 贴纸转换", callback_data="sticker_main")]
+        ]
+        await query.edit_message_text("🏠 HomeOps 控制台", reply_markup=InlineKeyboardMarkup(k))
     elif data == "clash_status":
         await clash_status(update, context)
     elif data == "clash_traffic":

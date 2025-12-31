@@ -23,6 +23,14 @@ class Config:
     # OpenClash API
     OPENCLASH_API_URL = os.getenv("OPENCLASH_API_URL", "http://127.0.0.1:9090")
     OPENCLASH_API_SECRET = os.getenv("OPENCLASH_API_SECRET", "")
+    
+    # AdGuard Home
+    ADG_URL = os.getenv("ADG_URL", None)  # e.g., http://127.0.0.1:3000
+    ADG_USER = os.getenv("ADG_USER", None)
+    ADG_PASS = os.getenv("ADG_PASS", None)
+    ADG_TOKEN = os.getenv("ADG_TOKEN", None)
+    ADG_SSH_CONFIG_PATH = os.getenv("ADG_SSH_CONFIG_PATH", "/etc/AdGuardHome.yaml")
+    ADG_LEASES_MODE = os.getenv("ADG_LEASES_MODE", "auto")  # auto|api|ssh
 
     if not BOT_TOKEN:
         raise ValueError("BOT_TOKEN is not set in .env file")

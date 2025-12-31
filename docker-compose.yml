@@ -1,7 +1,5 @@
 services:
   bot:
-    # 既指定 build 又指定 image，构建时会打上此标签，拉取时也会用此标签
-    build: .
     image: yingxiaomo/homeops:latest
     container_name: homeops_bot
     restart: unless-stopped
@@ -11,8 +9,7 @@ services:
     network_mode: host
     volumes:
       - ./data:/app/data
-      - ./config:/app/config
-      - ./plugins:/app/plugins
+      
 
   # 自动更新服务
   watchtower:

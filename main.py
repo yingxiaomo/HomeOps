@@ -49,30 +49,27 @@ async def global_auth_handler(update: Update, context):
 
 def load_plugins(application):
     plugin_dir = "plugins"
-    # List all python files in the plugins directory
     for filename in os.listdir(plugin_dir):
-        if filename.endswith(".py") and not filename.startswith("__"):
-            module_name = filename[:-3]
-            try:
-                # Import the module
+        try:
+            if filename.endswith(".py") and not filename.startswith("__"):
+                module_name = filename[:-3]
                 module = importlib.import_module(f"{plugin_dir}.{module_name}")
-                
-                # Check if the module has a 'handlers' list
-                if hasattr(module, "handlers"):
-                    for handler in module.handlers:
-                        application.add_handler(handler)
-                    logger.info(f"Loaded handlers from: {module_name}")
-                
-                # Check if the module has an 'init_plugin' function for advanced setup (e.g., jobs)
-                if hasattr(module, "init_plugin"):
-                    module.init_plugin(application)
-                    logger.info(f"Initialized plugin: {module_name}")
-
-                if not hasattr(module, "handlers") and not hasattr(module, "init_plugin"):
-                    logger.warning(f"Plugin {module_name} has no 'handlers' list or 'init_plugin' function.")
-            
-            except Exception as e:
-                logger.error(f"Failed to load plugin {module_name}: {e}")
+            elif os.path.isdir(os.path.join(plugin_dir, filename)) and os.path.isfile(os.path.join(plugin_dir, filename, "__init__.py")):
+                module_name = filename
+                module = importlib.import_module(f"{plugin_dir}.{module_name}")
+            else:
+                continue
+            if hasattr(module, "handlers"):
+                for handler in module.handlers:
+                    application.add_handler(handler)
+                logger.info(f"Loaded handlers from: {module_name}")
+            if hasattr(module, "init_plugin"):
+                module.init_plugin(application)
+                logger.info(f"Initialized plugin: {module_name}")
+            if not hasattr(module, "handlers") and not hasattr(module, "init_plugin"):
+                logger.warning(f"Plugin {module_name} has no 'handlers' list or 'init_plugin' function.")
+        except Exception as e:
+            logger.error(f"Failed to load plugin {filename}: {e}")
 
 def main():
     if not Config.BOT_TOKEN:
