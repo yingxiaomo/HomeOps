@@ -23,6 +23,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 设置 Go 环境并运行测试
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: true
+      
+      - name: Run Tests
+        run: |
+          go mod download
+          go test -v ./...
+
       # 设置 QEMU
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3

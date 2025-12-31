@@ -1,6 +1,7 @@
 services:
   bot:
-    image: yingxiaomo/homeops:latest
+    # image: yingxiaomo/homeops:latest
+    build: .
     container_name: homeops_bot
     restart: unless-stopped
     env_file:

@@ -1,19 +1,25 @@
-# 使用轻量级的 Python 3.12 镜像
-FROM python:3.12-slim
+FROM golang:1.22-alpine AS builder
 
-# 设置工作目录
 WORKDIR /app
 
-# 设置时区为上海 (可选，方便查看日志时间)
-ENV TZ=Asia/Shanghai
-RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+COPY go.mod go.sum ./
+RUN go mod download
 
-# 复制依赖文件并安装
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# 复制项目所有文件
 COPY . .
 
-# 启动命令
-CMD ["python", "main.py"]
+RUN go build -o go-bot main.go
+
+FROM alpine:latest
+
+WORKDIR /app
+
+RUN apk add --no-cache ca-certificates tzdata
+
+ENV TZ=Asia/Shanghai
+
+COPY --from=builder /app/go-bot .
+
+# Copy config folder if needed, but config.go loads from env or .env
+# We assume .env is mounted or env vars are passed
+
+CMD ["./go-bot"]
