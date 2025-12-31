@@ -4,9 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/yingxiaomo/HomeOps/config"
 	"log"
 	"sync"
+
+	"github.com/yingxiaomo/homeops/config"
 
 	"github.com/google/generative-ai-go/genai"
 	"google.golang.org/api/option"
@@ -33,6 +34,7 @@ func NewGeminiClient() *GeminiClient {
 	}
 }
 
+// rotateKey rotates to the next API key in the list
 func (c *GeminiClient) rotateKey() bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -63,7 +65,7 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, prompt string, image
 
 	for _, modelName := range c.models {
 		startKeyIndex := c.currentKeyIndex
-		
+
 		for {
 			key := c.getCurrentKey()
 			log.Printf("Attempting model: %s with key index: %d", modelName, c.currentKeyIndex)
@@ -72,22 +74,23 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, prompt string, image
 			if err != nil {
 				lastErr = err
 				if !c.rotateKey() || c.currentKeyIndex == startKeyIndex {
-					break // Try next model
+					break
 				}
 				continue
 			}
-			defer client.Close()
 
-			model := client.GenerativeModel(modelName)
-			
 			var resp *genai.GenerateContentResponse
 			var genErr error
+			func() {
+				defer client.Close()
+				model := client.GenerativeModel(modelName)
 
-			if len(imageParts) > 0 {
-				resp, genErr = model.GenerateContent(ctx, genai.Text(prompt), genai.ImageData("png", imageParts))
-			} else {
-				resp, genErr = model.GenerateContent(ctx, genai.Text(prompt))
-			}
+				if len(imageParts) > 0 {
+					resp, genErr = model.GenerateContent(ctx, genai.Text("请始终使用中文回答。\n"+prompt), genai.ImageData("png", imageParts))
+				} else {
+					resp, genErr = model.GenerateContent(ctx, genai.Text("请始终使用中文回答。\n"+prompt))
+				}
+			}()
 
 			if genErr == nil {
 				return printResponse(resp), nil
@@ -96,9 +99,8 @@ func (c *GeminiClient) GenerateContent(ctx context.Context, prompt string, image
 			lastErr = genErr
 			log.Printf("Error with model %s: %v", modelName, genErr)
 
-			// Rotate key and retry same model
 			if !c.rotateKey() || c.currentKeyIndex == startKeyIndex {
-				break // All keys failed for this model, try next model
+				break
 			}
 		}
 	}

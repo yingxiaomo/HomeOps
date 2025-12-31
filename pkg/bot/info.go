@@ -6,7 +6,6 @@ import (
 	tele "gopkg.in/telebot.v3"
 )
 
-// Info Command
 func (b *Bot) HandleInfo(c tele.Context) error {
 	info := fmt.Sprintf(
 		"ℹ️ **Bot Info**\n\n"+

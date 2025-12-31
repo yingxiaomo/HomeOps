@@ -3,13 +3,10 @@ name: Docker Build and Push
 on:
   push:
     branches: [ "main" ]
-    # 当推送类似 v1.0.0 的标签时也触发
     tags: [ 'v*.*.*' ]
-  # 允许在 Actions 页面手动触发
   workflow_dispatch:
 
 env:
-  # 你的 Docker Hub 仓库名 (例如: myname/mybot)
   IMAGE_NAME: yingxiaomo/homeops
 
 jobs:
@@ -23,7 +20,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 设置 Go 环境并运行测试
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
@@ -35,22 +31,18 @@ jobs:
           go mod download
           go test -v ./...
 
-      # 设置 QEMU
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
 
-      # 设置 Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # 登录 Docker Hub
       - name: Log into Docker Hub
         uses: docker/login-action@v3
         with:
           username: yingxiaomo
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # 自动提取 metadata
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -61,7 +53,6 @@ jobs:
             type=ref,event=branch
             type=ref,event=tag
 
-      # 构建并推送
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:

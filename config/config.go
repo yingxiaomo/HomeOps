@@ -20,18 +20,17 @@ type Config struct {
 	OpenWrtPass        string
 	OpenClashAPIURL    string
 	OpenClashAPISecret string
-	// AdGuard
-	ADG_URL  string
-	ADG_USER string
-	ADG_PASS string
+	AdgURL             string
+	AdgUser            string
+	AdgPass            string
+	AdgToken           string
+	AdgLeasesMode      string
 }
 
 var AppConfig *Config
 
 func LoadConfig() {
-	if err := godotenv.Load("../.env"); err != nil {
-		godotenv.Load(".env")
-	}
+	godotenv.Load(".env")
 
 	AppConfig = &Config{
 		BotToken:           os.Getenv("TG_BOT_TOKEN"),
@@ -45,9 +44,11 @@ func LoadConfig() {
 		OpenWrtPass:        os.Getenv("OPENWRT_PASS"),
 		OpenClashAPIURL:    getEnvAsIntStr("OPENCLASH_API_URL", "http://127.0.0.1:9090"),
 		OpenClashAPISecret: os.Getenv("OPENCLASH_API_SECRET"),
-		ADG_URL:            os.Getenv("ADG_URL"),
-		ADG_USER:           os.Getenv("ADG_USER"),
-		ADG_PASS:           os.Getenv("ADG_PASS"),
+		AdgURL:             os.Getenv("ADG_URL"),
+		AdgUser:            os.Getenv("ADG_USER"),
+		AdgPass:            os.Getenv("ADG_PASS"),
+		AdgToken:           os.Getenv("ADG_TOKEN"),
+		AdgLeasesMode:      getEnvAsIntStr("ADG_LEASES_MODE", "auto"),
 	}
 
 	if AppConfig.BotToken == "" {

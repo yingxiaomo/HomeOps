@@ -2,7 +2,7 @@ package openwrt
 
 import (
 	"fmt"
-	"github.com/yingxiaomo/HomeOps/config"
+	"github.com/yingxiaomo/homeops/config"
 	"time"
 
 	"golang.org/x/crypto/ssh"

@@ -2,15 +2,17 @@ package bot
 
 import (
 	"log"
+	"net/http"
+	"net/url"
 	"strings"
-	"sync"
 	"time"
 
-	"github.com/yingxiaomo/HomeOps/config"
-	"github.com/yingxiaomo/HomeOps/pkg/ai"
-	"github.com/yingxiaomo/HomeOps/pkg/openclash"
-	"github.com/yingxiaomo/HomeOps/pkg/openwrt"
-	"github.com/yingxiaomo/HomeOps/pkg/utils"
+	"github.com/yingxiaomo/homeops/config"
+	"github.com/yingxiaomo/homeops/pkg/ai"
+	"github.com/yingxiaomo/homeops/pkg/openclash"
+	"github.com/yingxiaomo/homeops/pkg/openwrt"
+	"github.com/yingxiaomo/homeops/pkg/session"
+	"github.com/yingxiaomo/homeops/pkg/utils"
 
 	tele "gopkg.in/telebot.v3"
 )
@@ -18,46 +20,34 @@ import (
 type Bot struct {
 	TeleBot *tele.Bot
 	Gemini  *ai.GeminiClient
-	Store   *SessionStore
-}
-
-type SessionStore struct {
-	mu   sync.RWMutex
-	Data map[int64]map[string]interface{}
-}
-
-func NewSessionStore() *SessionStore {
-	return &SessionStore{
-		Data: make(map[int64]map[string]interface{}),
-	}
-}
-
-func (s *SessionStore) Get(userID int64, key string) interface{} {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
-	if userStore, ok := s.Data[userID]; ok {
-		return userStore[key]
-	}
-	return nil
-}
-
-func (s *SessionStore) Set(userID int64, key string, value interface{}) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if _, ok := s.Data[userID]; !ok {
-		s.Data[userID] = make(map[string]interface{})
-	}
-	s.Data[userID][key] = value
+	Store   *session.SessionStore
 }
 
 func NewBot() *Bot {
 	pref := tele.Settings{
-		Token:  config.AppConfig.BotToken,
-		Poller: &tele.LongPoller{Timeout: 10 * time.Second},
+		Token:   config.AppConfig.BotToken,
+		Poller:  &tele.LongPoller{Timeout: 10 * time.Second},
+		Verbose: true,
 	}
-	
+
 	if config.AppConfig.TGBaseURL != "" {
 		pref.URL = config.AppConfig.TGBaseURL
+	}
+
+	log.Printf("Bot Config - Token: ...%s", config.AppConfig.BotToken[len(config.AppConfig.BotToken)-5:])
+	log.Printf("Bot Config - Proxy: %s", config.AppConfig.TGProxy)
+
+	if config.AppConfig.TGProxy != "" {
+		proxyUrl, err := url.Parse(config.AppConfig.TGProxy)
+		if err != nil {
+			log.Printf("Invalid Proxy URL: %v", err)
+		} else {
+			pref.Client = &http.Client{
+				Transport: &http.Transport{
+					Proxy: http.ProxyURL(proxyUrl),
+				},
+			}
+		}
 	}
 
 	b, err := tele.NewBot(pref)
@@ -68,34 +58,46 @@ func NewBot() *Bot {
 	return &Bot{
 		TeleBot: b,
 		Gemini:  ai.NewGeminiClient(),
-		Store:   NewSessionStore(),
+		Store:   session.GlobalStore,
 	}
 }
 
 func (b *Bot) Start() {
-	// Middleware
+	b.TeleBot.Use(b.LogMiddleware)
 	b.TeleBot.Use(b.AuthMiddleware)
-
-	// Commands
 	b.TeleBot.Handle("/start", b.HandleStart)
 	b.TeleBot.Handle("/ai", b.HandleAI)
 	b.TeleBot.Handle("/wrt", openwrt.HandleWrtMain)
 	b.TeleBot.Handle("/sticker", b.HandleStickerMenu)
 	b.TeleBot.Handle("/mail", b.HandleMailMenu)
+	b.TeleBot.Handle("/grant", b.HandleGrant)
+	b.TeleBot.Handle("/revoke", b.HandleRevoke)
+	b.TeleBot.Handle("/users", b.HandleListUsers)
 	b.TeleBot.Handle("/info", b.HandleInfo)
-	b.TeleBot.Handle("/id", b.HandleInfo) // Alias
-
-
-	// Callback Queries
+	b.TeleBot.Handle("/id", b.HandleInfo)
 	b.TeleBot.Handle(tele.OnCallback, b.HandleCallback)
-
-	// Text & Media
 	b.TeleBot.Handle(tele.OnText, b.HandleText)
 	b.TeleBot.Handle(tele.OnPhoto, b.HandlePhoto)
 	b.TeleBot.Handle(tele.OnSticker, b.HandleSticker)
 
+	openwrt.StartIPMonitor(b.TeleBot)
+
 	log.Printf("Go Bot started on %s", b.TeleBot.Me.Username)
 	b.TeleBot.Start()
+}
+
+func (b *Bot) LogMiddleware(next tele.HandlerFunc) tele.HandlerFunc {
+	return func(c tele.Context) error {
+		user := c.Sender()
+		updateID := c.Update().ID
+		if user != nil {
+			log.Printf("[%d] Update from %s (ID: %d): %s", updateID, user.Username, user.ID, c.Text())
+			if c.Callback() != nil {
+				log.Printf("[%d] Callback data: %s", updateID, c.Callback().Data)
+			}
+		}
+		return next(c)
+	}
 }
 
 func (b *Bot) AuthMiddleware(next tele.HandlerFunc) tele.HandlerFunc {
@@ -104,7 +106,7 @@ func (b *Bot) AuthMiddleware(next tele.HandlerFunc) tele.HandlerFunc {
 		if user == nil {
 			return next(c)
 		}
-		// TODO: Implement proper whitelist check
+
 		if !utils.HasPermission(user.ID, "") {
 			log.Printf("Unauthorized access: %d", user.ID)
 			return nil
@@ -124,22 +126,31 @@ func (b *Bot) HandleStart(c tele.Context) error {
 }
 
 func (b *Bot) HandleCallback(c tele.Context) error {
-	data := c.Callback().Data
-	
-	// Routing based on prefix
+	data := strings.TrimSpace(c.Callback().Data)
+	data = strings.TrimPrefix(data, "\f")
+
 	switch {
 	case data == "start_main":
 		return b.HandleStart(c)
 	case data == "ai_toggle":
 		return b.HandleAI(c)
 	case strings.HasPrefix(data, "wrt_"):
-		return openwrt.HandleCallback(c, data)
+		if err := openwrt.HandleCallback(c, data); err != nil {
+			log.Printf("Error handling OpenWrt callback: %v", err)
+			return c.Respond(&tele.CallbackResponse{Text: "操作失败", ShowAlert: true})
+		}
+		return nil
 	case strings.HasPrefix(data, "clash_"):
+		return openclash.HandleCallback(c, data)
+	case strings.HasPrefix(data, "G_") || strings.HasPrefix(data, "S_"):
 		return openclash.HandleCallback(c, data)
 	case strings.HasPrefix(data, "sticker_"):
 		return b.HandleStickerCallback(c, data)
 	case strings.HasPrefix(data, "mail_"):
 		return b.HandleMailCallback(c, data)
+	default:
+		log.Printf("Unknown callback data: %s", data)
+		return c.Respond()
 	}
 	return c.Respond()
 }

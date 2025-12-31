@@ -1,5 +1,7 @@
 # Go
-# bot  <-- Removed to avoid ignoring pkg/bot
+# bot
+/bot
+/go-bot
 bot.exe
 *.exe
 *.test
@@ -7,15 +9,6 @@ bot.exe
 go.work
 go.work.sum
 coverage.out
-
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-.venv/
-env/
-venv/
-ENV/
 
 # Sensitive Information
 .env

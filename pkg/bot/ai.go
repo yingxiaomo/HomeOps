@@ -6,27 +6,46 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/yingxiaomo/homeops/pkg/openwrt"
 	tele "gopkg.in/telebot.v3"
 )
 
 func (b *Bot) HandleAI(c tele.Context) error {
 	userID := c.Sender().ID
-	
-	// Toggle mode
-	// Note: In real app, use Store. But here for simplicity:
+
 	current := b.Store.Get(userID, "ai_mode")
 	if current == nil {
 		b.Store.Set(userID, "ai_mode", true)
-		return c.Send("🧠 **AI 模式已开启**\n发送文本或图片即可对话。")
+		menu := &tele.ReplyMarkup{}
+		menu.Inline(menu.Row(menu.Data("🚪 退出 AI 模式", "ai_toggle")))
+		return c.Send("🧠 **AI 模式已开启**\n发送文本或图片即可对话。", menu)
 	}
-	
-	// If exists, toggle off
-	b.Store.Set(userID, "ai_mode", nil) // remove
+
+	b.Store.Set(userID, "ai_mode", nil)
 	return c.Send("🚪 **AI 模式已关闭**")
 }
 
 func (b *Bot) HandleText(c tele.Context) error {
 	userID := c.Sender().ID
+
+	if state := b.Store.Get(userID, "wrt_net_state"); state != nil {
+		if s, ok := state.(string); ok {
+			return openwrt.HandleNetInput(c, s)
+		}
+	}
+
+	if state := b.Store.Get(userID, "fw_wizard"); state != nil {
+		return openwrt.HandleFwWizardInput(c, c.Text())
+	}
+
+	if state := b.Store.Get(userID, "adg_wizard"); state != nil {
+		if s, ok := state.(map[string]interface{}); ok {
+			if openwrt.HandleAdgWizardInput(c, s) {
+				return nil
+			}
+		}
+	}
+
 	if b.Store.Get(userID, "ai_mode") == nil {
 		return nil
 	}
@@ -42,11 +61,13 @@ func (b *Bot) HandleText(c tele.Context) error {
 	if len(resp) > 4000 {
 		resp = resp[:4000] + "..."
 	}
-	
-	// Markdown safe send
-	_, err = b.TeleBot.Edit(msg, resp, tele.ModeMarkdown)
+
+	menu := &tele.ReplyMarkup{}
+	menu.Inline(menu.Row(menu.Data("🚪 退出 AI 模式", "ai_toggle")))
+
+	_, err = b.TeleBot.Edit(msg, resp, tele.ModeMarkdown, menu)
 	if err != nil {
-		b.TeleBot.Edit(msg, resp)
+		b.TeleBot.Edit(msg, resp, menu)
 	}
 	return nil
 }
@@ -59,12 +80,8 @@ func (b *Bot) HandlePhoto(c tele.Context) error {
 
 	msg, _ := b.TeleBot.Send(c.Sender(), "🤔 接收图片中...")
 
-	// Download photo
 	photo := c.Message().Photo
-	// telebot.File() returns io.ReadCloser, not *telebot.File
-	// We need to use Download on the File object from the message, OR
-	// Use b.TeleBot.Download(&photo.File, path) directly.
-	
+
 	tmpFile := fmt.Sprintf("temp_ai_%d.jpg", userID)
 	defer os.Remove(tmpFile)
 
@@ -96,9 +113,12 @@ func (b *Bot) HandlePhoto(c tele.Context) error {
 		resp = resp[:4000] + "..."
 	}
 
-	_, err = b.TeleBot.Edit(msg, resp, tele.ModeMarkdown)
+	menu := &tele.ReplyMarkup{}
+	menu.Inline(menu.Row(menu.Data("🚪 退出 AI 模式", "ai_toggle")))
+
+	_, err = b.TeleBot.Edit(msg, resp, tele.ModeMarkdown, menu)
 	if err != nil {
-		b.TeleBot.Edit(msg, resp)
+		b.TeleBot.Edit(msg, resp, menu)
 	}
 	return nil
 }

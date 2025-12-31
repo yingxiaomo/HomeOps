@@ -1,8 +1,8 @@
 package main
 
 import (
-	"github.com/yingxiaomo/HomeOps/config"
-	"github.com/yingxiaomo/HomeOps/pkg/bot"
+	"github.com/yingxiaomo/homeops/config"
+	"github.com/yingxiaomo/homeops/pkg/bot"
 )
 
 func main() {
