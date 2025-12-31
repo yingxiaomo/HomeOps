@@ -26,18 +26,41 @@
 ## 运行方式
 
 ### 1. Docker 运行 (推荐)
-支持 Docker Compose 一键部署：
+支持使用预编译镜像或 Docker Compose 一键部署。
 
-```bash
-# 确保 .env 文件存在
-docker-compose up -d --build
+#### 方式 A：使用 Docker Compose (包含自动更新)
+```yaml
+# docker-compose.yml
+services:
+  bot:
+    image: yingxiaomo/homeops:latest
+    container_name: homeops_bot
+    restart: unless-stopped
+    env_file: .env
+    network_mode: host
+    volumes:
+      - ./data:/app/data
+
+  # 自动更新服务 (可选)
+  watchtower:
+    image: containrrr/watchtower
+    container_name: watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 300 --cleanup
 ```
 
-或者手动构建：
+启动命令：
+```bash
+docker-compose up -d
+```
+
+#### 方式 B：手动构建
+如果您想运行本地修改后的版本：
 
 ```bash
-docker build -t homeops_bot .
-docker run -d --env-file .env --name homeops_bot homeops_bot
+docker-compose up -d --build
 ```
 
 ### 2. 本地运行

@@ -1,7 +1,7 @@
 services:
   bot:
-    # image: yingxiaomo/homeops:latest
-    build: .
+    image: yingxiaomo/homeops:latest
+    # build: . # 如果需要本地开发调试，请取消注释此行并注释掉 image 行
     container_name: homeops_bot
     restart: unless-stopped
     env_file:
