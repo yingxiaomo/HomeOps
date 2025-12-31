@@ -1,5 +1,5 @@
 # Go
-bot
+# bot  <-- Removed to avoid ignoring pkg/bot
 bot.exe
 *.exe
 *.test
