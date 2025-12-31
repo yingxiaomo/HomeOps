@@ -1,7 +1,7 @@
 package utils
 
 import (
-	"go_bot/config"
+	"github.com/yingxiaomo/HomeOps/config"
 	"math/rand"
 )
 

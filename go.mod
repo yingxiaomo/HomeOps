@@ -1,4 +1,4 @@
-module go_bot
+module github.com/yingxiaomo/HomeOps
 
 go 1.22
 

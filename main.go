@@ -1,8 +1,8 @@
 package main
 
 import (
-	"go_bot/config"
-	"go_bot/pkg/bot"
+	"github.com/yingxiaomo/HomeOps/config"
+	"github.com/yingxiaomo/HomeOps/pkg/bot"
 )
 
 func main() {

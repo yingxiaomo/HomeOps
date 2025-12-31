@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"go_bot/config"
+	"github.com/yingxiaomo/HomeOps/config"
 	"net/http"
 	"strings"
 	"time"

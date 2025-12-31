@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"go_bot/config"
+	"github.com/yingxiaomo/HomeOps/config"
 	"log"
 	"sync"
 
