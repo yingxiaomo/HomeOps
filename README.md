@@ -1,6 +1,6 @@
 # 🏠 HomeOps - 家庭实验室全能管家
 
-**HomeOps** 是一个基于 Python 和 Telegram Bot 的智能化家庭网络运维助手。它集成了 OpenWrt 系统管理、OpenClash 代理控制、网络诊断工具箱以及 **Gemini 3.0 AI 助手**，致力于为极客提供从故障排查到日常管理的“上帝视角”。
+**HomeOps** 是一个基于 Python 和 Telegram Bot 的智能化家庭网络运维助手。它集成了 OpenWrt 系统管理、OpenClash 代理控制、AdGuard Home 广告拦截、网络诊断工具箱以及 **Gemini 3.0 AI 助手**，致力于为极客提供从故障排查到日常管理的“上帝视角”。
 
 ## ✨ 核心功能
 
@@ -19,13 +19,19 @@
 *   **动态调试**：无需重启，一键切换内核 `Info/Debug` 日志级别，配合 AI 分析快速定位翻墙故障。
 *   **工具箱**：一键测速、清理 FakeIP、重载配置。
 
-### 📟 4. OpenWrt 全能管理
-*   **精准 IP 监测**：基于 `ubus` 原生指令，精准获取运营商分配的真实公网 IP（避开代理干扰），支持多接口自动探测。
-*   **变动通知**：IP 变动秒级推送。
-*   **设备管理**：查看内网在线设备。
-*   **网络工具**：集成 Ping、Traceroute、Nslookup、Curl 等诊断工具。
+### 🛡️ 4. AdGuard Home 深度集成
+*   **全按钮交互**：告别繁琐的 YAML 编辑，通过按钮一键开关核心功能（安全搜索、查询日志等）。
+*   **策略管理**：一键切换过滤规则，实时查看拦截统计。
+*   **高级设置**：快速调整 DNS 上游、Bootstrap DNS、缓存大小及 TTL，支持 MB/字节单位自动转换。
+*   **DHCP 联动**：直观查看 DHCP 租约状态。
 
-### 🛠 5. 实用小工具
+### 📟 5. OpenWrt 全能管理
+*   **可视化操作**：系统服务（网络、防火墙、DHCP、uhttpd）状态一目了然，支持一键重启/重载。
+*   **网络诊断**：集成 Ping、Traceroute、Nslookup，提供“一键快测”功能（百度、谷歌、网关）。
+*   **精准 IP 监测**：基于 `ubus` 原生指令，精准获取运营商分配的真实公网 IP（避开代理干扰）。
+*   **设备管理**：查看内网在线设备，支持一键踢出（需配合相应脚本）。
+
+### 🛠 6. 实用小工具
 *   **临时邮箱**：集成 1secmail，一键生成临时邮箱收验证码。
 *   **贴纸转换**：发送贴纸，自动转换为 PNG 图片。
 
@@ -70,6 +76,12 @@ OPENWRT_PASS=你的_SSH_密码
 # --- 🚀 OpenClash 管理 (API) ---
 OPENCLASH_API_URL=http://192.168.1.1:9090
 OPENCLASH_API_SECRET=你的_API_Secret
+
+# --- 🛡️ AdGuard Home 管理 (API) ---
+ADG_URL=http://192.168.1.1:3000
+ADG_USER=root
+ADG_PASS=你的_ADG_密码
+# ADG_SSH_CONFIG_PATH=/etc/AdGuardHome.yaml (可选，默认路径)
 ```
 
 **3. 创建 docker-compose.yml**
@@ -134,7 +146,7 @@ python main.py
 ## 🎮 使用说明
 
 ### 常用指令
-*   `/start` - 呼出主控台 (AI / OpenClash / OpenWrt / 工具)
+*   `/start` - 呼出主控台 (AI / OpenClash / OpenWrt / ADG / 工具)
 *   `/ai` - 快速进入 AI 沉浸对话模式
 *   `/id` - 获取当前用户 ID (用于授权)
 
@@ -146,6 +158,7 @@ python main.py
 ## ⚠️ 注意事项
 *   **OpenWrt SSH**: 请确保运行机器人的设备能通过 SSH 连接到路由器。
 *   **OpenClash API**: 请确保在 OpenClash 插件设置中开启了 "允许局域网访问控制面板"，并配置了正确的端口和密钥。
+*   **AdGuard Home**: 需开启 API 访问权限（通常使用管理员账号密码即可）。
 *   **AI 额度**: 虽然内置了降级链，但建议至少配置 2-3 个 Google API Key 以保证高强度使用下的稳定性。
 
 ---
