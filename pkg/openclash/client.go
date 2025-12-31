@@ -1,6 +1,7 @@
 package openclash
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"github.com/yingxiaomo/HomeOps/config"
@@ -47,4 +48,28 @@ func (c *Client) GetConfig() (map[string]interface{}, error) {
 		return nil, err
 	}
 	return res, nil
+}
+
+func (c *Client) PatchConfig(conf map[string]interface{}) error {
+	body, _ := json.Marshal(conf)
+	req, err := http.NewRequest("PATCH", c.BaseURL+"/configs", bytes.NewBuffer(body))
+	if err != nil {
+		return err
+	}
+	
+	if c.Secret != "" {
+		req.Header.Set("Authorization", "Bearer "+c.Secret)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != 204 {
+		return fmt.Errorf("API error: %d", resp.StatusCode)
+	}
+	return nil
 }

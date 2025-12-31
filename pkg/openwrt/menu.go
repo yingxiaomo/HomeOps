@@ -31,6 +31,8 @@ func HandleCallback(c tele.Context, data string) error {
 		return handleNetMenu(c)
 	case "wrt_adg":
 		return handleAdgMenu(c)
+	case "adg_toggle":
+		return handleAdgToggle(c)
 	// Add more cases
 	}
 	return c.Respond()
@@ -83,9 +85,65 @@ func handleNetMenu(c tele.Context) error {
 }
 
 func handleAdgMenu(c tele.Context) error {
-	// Simple placeholder for ADG
-	txt := "🛡️ **AdGuard Home**\n目前仅支持查看状态 (Go版开发中)。"
+	client := NewAdGuardClient()
+	
+	c.Respond(&tele.CallbackResponse{Text: "正在获取 AdGuard 数据..."})
+	
+	// Fetch status parallel or seq
+	filtering, err1 := client.GetFilteringStatus()
+	stats, err2 := client.GetStats()
+	
+	statusIcon := "🔴"
+	statusText := "已禁用"
+	if filtering {
+		statusIcon = "🟢"
+		statusText = "运行中"
+	}
+	if err1 != nil {
+		statusText = fmt.Sprintf("未知 (%v)", err1)
+	}
+
+	dnsCount := 0
+	blockedCount := 0
+	if err2 == nil && stats != nil {
+		if v, ok := stats["num_dns_queries"].(float64); ok {
+			dnsCount = int(v)
+		}
+		if v, ok := stats["num_blocked_filtering"].(float64); ok {
+			blockedCount = int(v)
+		}
+	}
+
+	txt := fmt.Sprintf("🛡️ **AdGuard Home**\n"+
+		"-------------------\n"+
+		"状态: %s %s\n"+
+		"查询总数: `%d`\n"+
+		"已拦截: `%d`\n",
+		statusIcon, statusText, dnsCount, blockedCount)
+
 	menu := &tele.ReplyMarkup{}
-	menu.Inline(menu.Row(menu.Data("🔙 返回", "wrt_main")))
+	toggleBtn := menu.Data("✅ 开启防护", "adg_toggle")
+	if filtering {
+		toggleBtn = menu.Data("⛔ 关闭防护", "adg_toggle")
+	}
+	
+	menu.Inline(
+		menu.Row(toggleBtn),
+		menu.Row(menu.Data("🔄 刷新", "wrt_adg"), menu.Data("🔙 返回", "wrt_main")),
+	)
 	return c.Edit(txt, menu, tele.ModeMarkdown)
+}
+
+func handleAdgToggle(c tele.Context) error {
+	client := NewAdGuardClient()
+	status, _ := client.GetFilteringStatus()
+	
+	err := client.SetFiltering(!status)
+	if err != nil {
+		return c.Respond(&tele.CallbackResponse{Text: "操作失败: " + err.Error()})
+	}
+	
+	// Refresh menu
+	time.Sleep(500 * time.Millisecond) // Wait for ADG to apply
+	return handleAdgMenu(c)
 }

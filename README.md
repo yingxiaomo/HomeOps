@@ -3,9 +3,17 @@
 这是原 Python 机器人的 Go 语言重写版本。
 
 ## 功能
-- **AI 对话**: 集成 Google Gemini (支持多 Key 轮询、模型降级)。
-- **OpenWrt 管理**: 通过 SSH 获取系统状态。
-- **权限管理**: 简单的管理员验证。
+- **AI 对话**: 集成 Google Gemini (支持多 Key 轮询、模型降级、上下文记忆)。
+- **OpenWrt 管理**:
+  - 系统状态监控 (CPU/内存/负载)
+  - 设备列表扫描 (DHCP/ARP)
+  - AdGuard Home 管理 (查看统计/拦截开关)
+  - 网络工具箱 (Ping/Trace/Nslookup)
+- **OpenClash 控制**: 状态查看、模式切换、日志分析。
+- **实用工具**:
+  - 贴纸/图片格式转换
+  - 临时邮箱生成
+- **权限管理**: 基于 ID 的白名单验证。
 
 ## 目录结构
 ```
@@ -79,4 +87,3 @@ go run main.go
 
 ## 注意事项
 - 确保 `.env` 文件中有 `TG_BOT_TOKEN`, `GEMINI_API_KEY`, `OPENWRT_HOST` 等配置。
-- 目前仅实现了核心 AI 和 SSH 查询功能，更多插件正在迁移中。

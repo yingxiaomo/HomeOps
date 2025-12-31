@@ -117,7 +117,8 @@ func (b *Bot) HandleStart(c tele.Context) error {
 	menu := &tele.ReplyMarkup{}
 	menu.Inline(
 		menu.Row(menu.Data("🤖 AI 助手", "ai_toggle"), menu.Data("📡 OpenWrt", "wrt_main")),
-		menu.Row(menu.Data("🖼️ 贴纸转换", "sticker_main"), menu.Data("📧 临时邮箱", "mail_main")),
+		menu.Row(menu.Data("🚀 OpenClash", "clash_main"), menu.Data("📧 临时邮箱", "mail_main")),
+		menu.Row(menu.Data("🖼️ 贴纸转换", "sticker_main")),
 	)
 	return c.Send("👋 欢迎使用 Go 全功能机器人！\n请选择功能：", menu)
 }

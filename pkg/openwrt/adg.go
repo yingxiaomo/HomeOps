@@ -64,3 +64,42 @@ func (c *AdGuardClient) Request(method, endpoint string) (map[string]interface{}
 	}
 	return res, nil
 }
+
+func (c *AdGuardClient) GetStats() (map[string]interface{}, error) {
+	return c.Request("GET", "/control/stats")
+}
+
+func (c *AdGuardClient) GetFilteringStatus() (bool, error) {
+	res, err := c.Request("GET", "/control/filtering/status")
+	if err != nil {
+		return false, err
+	}
+	if enabled, ok := res["enabled"].(bool); ok {
+		return enabled, nil
+	}
+	return false, nil
+}
+
+func (c *AdGuardClient) SetFiltering(enabled bool) error {
+	url := "/control/filtering/enable"
+	if !enabled {
+		url = "/control/filtering/disable"
+	}
+	req, err := http.NewRequest("POST", c.BaseURL+url, nil)
+	if err != nil {
+		return err
+	}
+	auth := base64.StdEncoding.EncodeToString([]byte(c.User + ":" + c.Pass))
+	req.Header.Set("Authorization", "Basic "+auth)
+	req.Header.Set("Content-Type", "application/json")
+	
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode >= 400 {
+		return fmt.Errorf("status %d", resp.StatusCode)
+	}
+	return nil
+}
