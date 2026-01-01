@@ -3,7 +3,6 @@ package openwrt
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 	"time"
 
