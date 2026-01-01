@@ -26,7 +26,7 @@ logs/
 config/*.json
 
 # Docker
-.dockerignore
+# .dockerignore  # Removed - .dockerignore should be version controlled
 
 # AI & Dev Docs (Local only)
 .ai.md
