@@ -127,27 +127,7 @@ func (b *Bot) getMainMenu() *tele.ReplyMarkup {
 }
 
 func (b *Bot) HandleStart(c tele.Context) error {
-	hour := time.Now().Hour()
-	var timeGreeting string
-
-	switch {
-	case hour >= 0 && hour < 5:
-		timeGreeting = "深夜了，注意休息 🌙"
-	case hour >= 5 && hour < 9:
-		timeGreeting = "早上好，新的一天加油 ☀️"
-	case hour >= 9 && hour < 12:
-		timeGreeting = "上午好 ☕"
-	case hour >= 12 && hour < 14:
-		timeGreeting = "中午好，记得按时吃饭 🍱"
-	case hour >= 14 && hour < 18:
-		timeGreeting = "下午好，喝杯茶提提神吧 🍵"
-	case hour >= 18 && hour < 23:
-		timeGreeting = "晚上好，辛苦一天了 🌃"
-	default:
-		timeGreeting = "你好 👋"
-	}
-
-	text := fmt.Sprintf("🤖 **HomeOps 已连接**\n\n%s\n\n请选择功能菜单：", timeGreeting)
+	text := "🤖 **HomeOps 已连接**\n\n请选择功能菜单："
 	return c.Send(text, b.getMainMenu(), tele.ModeMarkdown)
 }
 
