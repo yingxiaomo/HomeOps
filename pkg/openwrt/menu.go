@@ -16,7 +16,7 @@ func HandleWrtMain(c tele.Context) error {
 		menu.Row(menu.Data("🛡️ AdGuard", "wrt_adg"), menu.Data("🔄 重启系统", "wrt_reboot_confirm")),
 		menu.Row(menu.Data("🤖 AI 分析日志", "wrt_ai_analyze"), menu.Data("🔙 返回", "start_main")),
 	)
-	return c.EditOrSend("📡 **OpenWrt 管理面板**\n请选择功能：", menu, tele.ModeMarkdown)
+	return utils.SendLongMessage(c, nil, "📡 **OpenWrt 管理面板**\n请选择功能：", menu)
 }
 
 func HandleCallback(c tele.Context, data string) error {

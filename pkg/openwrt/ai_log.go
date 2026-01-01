@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/yingxiaomo/homeops/pkg/ai"
+	"github.com/yingxiaomo/homeops/pkg/session"
 	"github.com/yingxiaomo/homeops/pkg/utils"
 	tele "gopkg.in/telebot.v3"
 )
@@ -90,10 +91,21 @@ func HandleAIAnalyze(c tele.Context) error {
 			return
 		}
 
-		resultText := fmt.Sprintf("📋 **AI OpenWrt 综合诊断报告**\n-------------------\n%s", resp)
+		resultText := fmt.Sprintf("📋 **AI OpenWrt 综合诊断报告**\n-------------------\n%s\n\n💡 **现在你可以直接发送消息继续咨询此问题。**", resp)
+
+		// Enable AI mode and save history
+		userID := c.Sender().ID
+		session.GlobalStore.Set(userID, "ai_mode", true)
+
+		// Save context for continuous chat
+		history := fmt.Sprintf("User: %s\nModel: %s\n", prompt, resp)
+		session.GlobalStore.Set(userID, "ai_history", history)
 
 		menu := &tele.ReplyMarkup{}
-		menu.Inline(menu.Row(menu.Data("🔙 返回", "wrt_main")))
+		menu.Inline(
+			menu.Row(menu.Data("🚪 退出 AI 模式", "ai_toggle")),
+			menu.Row(menu.Data("🔙 返回", "wrt_main")),
+		)
 
 		utils.SendLongMessage(c, msg, resultText, menu)
 	}()
