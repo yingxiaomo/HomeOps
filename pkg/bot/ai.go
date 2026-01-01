@@ -63,9 +63,9 @@ func (b *Bot) HandleAI(c tele.Context) error {
 	txt := fmt.Sprintf("🚪 **AI 模式已关闭**\n🤖 **HomeOps 已连接**\n\n%s\n\n请选择功能菜单：", timeGreeting)
 
 	// 尝试直接编辑消息返回主菜单，实现无缝退出
-	err := c.Edit(txt, menu)
+	err := c.Edit(txt, menu, tele.ModeMarkdown)
 	if err != nil {
-		return c.Send(txt, menu)
+		return c.Send(txt, menu, tele.ModeMarkdown)
 	}
 	return nil
 }
