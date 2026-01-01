@@ -97,6 +97,33 @@ go mod tidy
 go run main.go
 ```
 
+## 常见问题
+
+### 如何配置 SSH 密钥登录？ (避免日志刷屏)
+
+使用密码登录 OpenWrt 时，每次 Bot 执行命令都会产生一条登录日志。推荐使用密钥登录：
+
+1. **生成密钥对** (如果已有可跳过)：
+   ```bash
+   # 在你的电脑或服务器上生成
+   ssh-keygen -t rsa -b 2048 -f openwrt_key
+   # 会生成 openwrt_key (私钥) 和 openwrt_key.pub (公钥)
+   ```
+
+2. **部署公钥到 OpenWrt**：
+   将 `openwrt_key.pub` 的内容追加到 OpenWrt 的 `/etc/dropbear/authorized_keys` 文件中。
+   ```bash
+   # 示例命令 (将公钥内容替换进去)
+   ssh root@192.168.1.1 "echo 'ssh-rsa AAAA...' >> /etc/dropbear/authorized_keys"
+   ```
+
+3. **配置 Bot**：
+   - 将私钥文件 (`openwrt_key`) 放入 Bot 的 `data` 目录。
+   - 修改 `.env`：
+     ```ini
+     OPENWRT_KEY_FILE=/app/data/openwrt_key
+     ```
+
 ## 注意事项
 - 确保 `.env` 文件中有 `TG_BOT_TOKEN`, `GEMINI_API_KEY`, `OPENWRT_HOST` 等配置。
 - **SSH 登录**: 推荐配置 `OPENWRT_KEY_FILE` 使用密钥登录，以避免 OpenWrt 系统日志被 SSH 登录信息刷屏。
