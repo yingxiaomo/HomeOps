@@ -1,0 +1,41 @@
+# Git
+.git
+.gitignore
+.github
+
+# Go
+bot
+/bot
+/go-bot
+bot.exe
+*.exe
+*.test
+*.out
+go.work
+go.work.sum
+coverage.out
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentation
+README.md
+WORKER.md
+.ai.md
+docs/
+
+# Logs and Data
+*.log
+logs/
+data/
+
+# Sensitive
+.env
