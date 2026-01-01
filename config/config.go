@@ -18,6 +18,7 @@ type Config struct {
 	OpenWrtPort        int
 	OpenWrtUser        string
 	OpenWrtPass        string
+	OpenWrtKeyFile     string
 	OpenClashAPIURL    string
 	OpenClashAPISecret string
 	AdgURL             string
@@ -42,6 +43,7 @@ func LoadConfig() {
 		OpenWrtPort:        int(getEnvAsInt("OPENWRT_PORT", 22)),
 		OpenWrtUser:        getEnvAsIntStr("OPENWRT_USER", "root"),
 		OpenWrtPass:        os.Getenv("OPENWRT_PASS"),
+		OpenWrtKeyFile:     os.Getenv("OPENWRT_KEY_FILE"),
 		OpenClashAPIURL:    getEnvAsIntStr("OPENCLASH_API_URL", "http://127.0.0.1:9090"),
 		OpenClashAPISecret: os.Getenv("OPENCLASH_API_SECRET"),
 		AdgURL:             os.Getenv("ADG_URL"),

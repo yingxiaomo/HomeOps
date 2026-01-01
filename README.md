@@ -99,3 +99,5 @@ go run main.go
 
 ## 注意事项
 - 确保 `.env` 文件中有 `TG_BOT_TOKEN`, `GEMINI_API_KEY`, `OPENWRT_HOST` 等配置。
+- **SSH 登录**: 推荐配置 `OPENWRT_KEY_FILE` 使用密钥登录，以避免 OpenWrt 系统日志被 SSH 登录信息刷屏。
+
