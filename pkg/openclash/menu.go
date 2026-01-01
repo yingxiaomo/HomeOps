@@ -62,7 +62,7 @@ func HandleCallback(c tele.Context, data string) error {
 		return handleToolAction(c, "fakeip")
 	case data == "clash_flush_conns":
 		return handleToolAction(c, "conns")
-	case data == "wrt_ai_clash":
+	case data == "clash_ai_analyze":
 		return HandleAIAnalyze(c)
 	case data == "clash_speedtest_all":
 		return handleSpeedtestAll(c, "")
