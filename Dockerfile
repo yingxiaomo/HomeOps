@@ -19,7 +19,4 @@ ENV TZ=Asia/Shanghai
 
 COPY --from=builder /app/go-bot .
 
-# Copy config folder if needed, but config.go loads from env or .env
-# We assume .env is mounted or env vars are passed
-
 CMD ["./go-bot"]
