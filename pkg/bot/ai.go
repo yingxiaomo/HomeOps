@@ -42,25 +42,7 @@ func (b *Bot) HandleAI(c tele.Context) error {
 	// Clear log context after determining the menu
 	b.Store.Delete(userID, "ai_log_context")
 
-	hour := time.Now().Hour()
-	var timeGreeting string
-	switch {
-	case hour >= 0 && hour < 5:
-		timeGreeting = "深夜了，注意休息 🌙"
-	case hour >= 5 && hour < 9:
-		timeGreeting = "早上好，新的一天加油 ☀️"
-	case hour >= 9 && hour < 12:
-		timeGreeting = "上午好 ☕"
-	case hour >= 12 && hour < 14:
-		timeGreeting = "中午好，记得按时吃饭 🍱"
-	case hour >= 14 && hour < 18:
-		timeGreeting = "下午好，喝杯茶提提神吧 🍵"
-	case hour >= 18 && hour < 23:
-		timeGreeting = "晚上好，辛苦一天了 🌃"
-	default:
-		timeGreeting = "你好 👋"
-	}
-	txt := fmt.Sprintf("🚪 **AI 模式已关闭**\n🤖 **HomeOps 已连接**\n\n%s\n\n请选择功能菜单：", timeGreeting)
+	txt := "🚪 **AI 模式已关闭**\n🤖 **HomeOps 已连接**\n\n请选择功能菜单："
 
 	// 尝试直接编辑消息返回主菜单，实现无缝退出
 	err := c.Edit(txt, menu, tele.ModeMarkdown)
