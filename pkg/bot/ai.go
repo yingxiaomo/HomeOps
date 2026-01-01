@@ -27,9 +27,20 @@ func (b *Bot) HandleAI(c tele.Context) error {
 
 	b.Store.Set(userID, "ai_mode", nil)
 	b.Store.Delete(userID, "ai_history")
-	b.Store.Delete(userID, "ai_log_context") // Clear log context on exit
 
-	menu := b.getMainMenu()
+	// Check if we have a log context to determine which menu to return to
+	var menu *tele.ReplyMarkup
+	logContext := b.Store.Get(userID, "ai_log_context")
+	if logContext != nil {
+		// For log analysis context, return to global main menu
+		// This provides a cleaner exit experience
+		menu = b.getMainMenu()
+	} else {
+		menu = b.getMainMenu()
+	}
+
+	// Clear log context after determining the menu
+	b.Store.Delete(userID, "ai_log_context")
 
 	hour := time.Now().Hour()
 	var timeGreeting string
