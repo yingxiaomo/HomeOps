@@ -47,7 +47,6 @@ func HandleDevices(c tele.Context) error {
 		return c.Edit(txt, menu, tele.ModeMarkdown)
 	}
 
-	// 2. Fallback to OpenWrt /tmp/dhcp.leases
 	res, err := SSHExec("cat /tmp/dhcp.leases")
 	if err == nil && strings.TrimSpace(res) != "" {
 		txt := "📱 **当前联网设备 (DHCP)**\n-------------------\n"
@@ -73,18 +72,16 @@ func HandleDevices(c tele.Context) error {
 		return c.Edit(txt, menu, tele.ModeMarkdown)
 	}
 
-	// 3. Fallback to ARP
 	arp, _ := SSHExec("cat /proc/net/arp")
 	if strings.TrimSpace(arp) != "" {
 		lines := strings.Split(arp, "\n")
-		// Check if there are actual entries (skip header)
 		if len(lines) > 1 {
 			txt := "📱 **当前邻居列表 (ARP)**\n-------------------\n"
 			count := 0
 			for i, line := range lines {
 				if i == 0 {
 					continue
-				} // Header
+				}
 				parts := strings.Fields(line)
 				if len(parts) >= 4 {
 					ip := parts[0]
@@ -107,7 +104,6 @@ func HandleDevices(c tele.Context) error {
 		}
 	}
 
-	// 4. Fallback to IP Neigh
 	neigh, _ := SSHExec("ip neigh show")
 	if strings.TrimSpace(neigh) != "" {
 		txt := "📱 **当前邻居列表 (IP Neigh)**\n-------------------\n"
@@ -119,7 +115,6 @@ func HandleDevices(c tele.Context) error {
 				ip := parts[0]
 				mac := ""
 				state := ""
-				// format: 192.168.1.135 dev br-lan lladdr 24:18:c6:..:..:.. STALE
 				for i, p := range parts {
 					if p == "lladdr" && i+1 < len(parts) {
 						mac = parts[i+1]

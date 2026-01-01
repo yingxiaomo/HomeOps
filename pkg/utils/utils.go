@@ -11,6 +11,7 @@ import (
 	"sync"
 
 	"github.com/yingxiaomo/homeops/config"
+	tele "gopkg.in/telebot.v3"
 )
 
 var (
@@ -161,10 +162,90 @@ func RandomString(n int) string {
 }
 
 func EscapeMarkdown(text string) string {
-	// Markdown V1 only requires escaping these characters
 	special := "_*[]`"
 	for _, c := range special {
 		text = strings.ReplaceAll(text, string(c), "\\"+string(c))
 	}
 	return text
+}
+
+// SendLongMessage handles splitting long text into multiple messages.
+// If msgToEdit is provided, the first chunk will edit that message.
+// The menu will only be attached to the last chunk.
+func SendLongMessage(c tele.Context, msgToEdit *tele.Message, text string, menu *tele.ReplyMarkup) error {
+	const maxLen = 3800 // Leave some buffer for markdown overhead
+
+	if len(text) <= maxLen {
+		if msgToEdit != nil {
+			_, err := c.Bot().Edit(msgToEdit, text, tele.ModeMarkdown, menu)
+			return err
+		}
+		return c.Send(text, tele.ModeMarkdown, menu)
+	}
+
+	chunks := SplitText(text, maxLen)
+	for i, chunk := range chunks {
+		var opts []interface{}
+		opts = append(opts, tele.ModeMarkdown)
+		// Only attach menu to the last chunk
+		if i == len(chunks)-1 && menu != nil {
+			opts = append(opts, menu)
+		}
+
+		if i == 0 && msgToEdit != nil {
+			_, err := c.Bot().Edit(msgToEdit, chunk, opts...)
+			if err != nil {
+				// If edit fails (e.g. message too old), try sending
+				_, err = c.Bot().Send(c.Recipient(), chunk, opts...)
+				if err != nil {
+					return err
+				}
+			}
+		} else {
+			_, err := c.Bot().Send(c.Recipient(), chunk, opts...)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func SplitText(text string, limit int) []string {
+	var chunks []string
+	lines := strings.Split(text, "\n")
+	var currentChunk strings.Builder
+
+	for _, line := range lines {
+		// +1 for newline
+		if currentChunk.Len()+len(line)+1 > limit {
+			if currentChunk.Len() > 0 {
+				chunks = append(chunks, currentChunk.String())
+				currentChunk.Reset()
+			}
+
+			// If the single line itself is too long, we must split it brutally
+			if len(line) > limit {
+				runes := []rune(line)
+				for len(runes) > 0 {
+					take := limit
+					if len(runes) < take {
+						take = len(runes)
+					}
+					chunks = append(chunks, string(runes[:take]))
+					runes = runes[take:]
+				}
+			} else {
+				currentChunk.WriteString(line)
+				currentChunk.WriteString("\n")
+			}
+		} else {
+			currentChunk.WriteString(line)
+			currentChunk.WriteString("\n")
+		}
+	}
+	if currentChunk.Len() > 0 {
+		chunks = append(chunks, currentChunk.String())
+	}
+	return chunks
 }

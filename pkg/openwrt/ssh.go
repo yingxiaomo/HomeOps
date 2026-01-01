@@ -2,13 +2,30 @@ package openwrt
 
 import (
 	"fmt"
-	"github.com/yingxiaomo/homeops/config"
+	"sync"
 	"time"
 
+	"github.com/yingxiaomo/homeops/config"
 	"golang.org/x/crypto/ssh"
 )
 
-func SSHExec(cmd string) (string, error) {
+var (
+	sshClient *ssh.Client
+	sshMutex  sync.Mutex
+)
+
+func getClient(forceReconnect bool) (*ssh.Client, error) {
+	sshMutex.Lock()
+	defer sshMutex.Unlock()
+
+	if sshClient != nil {
+		if !forceReconnect {
+			return sshClient, nil
+		}
+		sshClient.Close()
+		sshClient = nil
+	}
+
 	conf := &ssh.ClientConfig{
 		User: config.AppConfig.OpenWrtUser,
 		Auth: []ssh.AuthMethod{
@@ -21,13 +38,29 @@ func SSHExec(cmd string) (string, error) {
 	addr := fmt.Sprintf("%s:%d", config.AppConfig.OpenWrtHost, config.AppConfig.OpenWrtPort)
 	client, err := ssh.Dial("tcp", addr, conf)
 	if err != nil {
+		return nil, err
+	}
+
+	sshClient = client
+	return client, nil
+}
+
+func SSHExec(cmd string) (string, error) {
+	client, err := getClient(false)
+	if err != nil {
 		return "", err
 	}
-	defer client.Close()
 
 	session, err := client.NewSession()
 	if err != nil {
-		return "", err
+		client, err = getClient(true)
+		if err != nil {
+			return "", fmt.Errorf("failed to reconnect: %v", err)
+		}
+		session, err = client.NewSession()
+		if err != nil {
+			return "", fmt.Errorf("failed to create session after reconnect: %v", err)
+		}
 	}
 	defer session.Close()
 

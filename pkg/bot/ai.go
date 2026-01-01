@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"time"
 
 	"github.com/yingxiaomo/homeops/pkg/openwrt"
+	"github.com/yingxiaomo/homeops/pkg/utils"
 	tele "gopkg.in/telebot.v3"
 )
 
@@ -22,7 +24,35 @@ func (b *Bot) HandleAI(c tele.Context) error {
 	}
 
 	b.Store.Set(userID, "ai_mode", nil)
-	return c.Send("🚪 **AI 模式已关闭**")
+
+	menu := b.getMainMenu()
+
+	hour := time.Now().Hour()
+	var timeGreeting string
+	switch {
+	case hour >= 0 && hour < 5:
+		timeGreeting = "深夜了，注意休息 🌙"
+	case hour >= 5 && hour < 9:
+		timeGreeting = "早上好，新的一天加油 ☀️"
+	case hour >= 9 && hour < 12:
+		timeGreeting = "上午好 ☕"
+	case hour >= 12 && hour < 14:
+		timeGreeting = "中午好，记得按时吃饭 🍱"
+	case hour >= 14 && hour < 18:
+		timeGreeting = "下午好，喝杯茶提提神吧 🍵"
+	case hour >= 18 && hour < 23:
+		timeGreeting = "晚上好，辛苦一天了 🌃"
+	default:
+		timeGreeting = "你好 👋"
+	}
+	txt := fmt.Sprintf("🚪 **AI 模式已关闭**\n🤖 **HomeOps 已连接**\n\n%s\n\n请选择功能菜单：", timeGreeting)
+
+	// 尝试直接编辑消息返回主菜单，实现无缝退出
+	err := c.Edit(txt, menu)
+	if err != nil {
+		return c.Send(txt, menu)
+	}
+	return nil
 }
 
 func (b *Bot) HandleText(c tele.Context) error {
@@ -58,17 +88,10 @@ func (b *Bot) HandleText(c tele.Context) error {
 		return err
 	}
 
-	if len(resp) > 4000 {
-		resp = resp[:4000] + "..."
-	}
-
 	menu := &tele.ReplyMarkup{}
 	menu.Inline(menu.Row(menu.Data("🚪 退出 AI 模式", "ai_toggle")))
 
-	_, err = b.TeleBot.Edit(msg, resp, tele.ModeMarkdown, menu)
-	if err != nil {
-		b.TeleBot.Edit(msg, resp, menu)
-	}
+	utils.SendLongMessage(c, msg, resp, menu)
 	return nil
 }
 
@@ -109,16 +132,9 @@ func (b *Bot) HandlePhoto(c tele.Context) error {
 		return err
 	}
 
-	if len(resp) > 4000 {
-		resp = resp[:4000] + "..."
-	}
-
 	menu := &tele.ReplyMarkup{}
 	menu.Inline(menu.Row(menu.Data("🚪 退出 AI 模式", "ai_toggle")))
 
-	_, err = b.TeleBot.Edit(msg, resp, tele.ModeMarkdown, menu)
-	if err != nil {
-		b.TeleBot.Edit(msg, resp, menu)
-	}
+	utils.SendLongMessage(c, msg, resp, menu)
 	return nil
 }

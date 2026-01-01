@@ -286,7 +286,6 @@ func handleListNodes(c tele.Context, groupName string) error {
 		}
 
 		data := fmt.Sprintf("S_%s|%s", groupName, nodeName)
-		// Check length
 		if len(data) > 64 {
 		}
 

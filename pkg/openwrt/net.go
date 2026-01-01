@@ -135,7 +135,6 @@ func HandleNetInput(c tele.Context, state string) error {
 	case "nslookup":
 		cmd = fmt.Sprintf("nslookup %s", target)
 	case "curl":
-		// Match Python: curl -I -s -w 'Response Code: %{http_code}\nTime: %{time_total}s\n' -o /dev/null {input}
 		cmd = fmt.Sprintf("curl -I -s -w 'Response Code: %%{http_code}\\nTime: %%{time_total}s\\n' -o /dev/null %s", target)
 	}
 

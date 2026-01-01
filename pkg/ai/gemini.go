@@ -34,7 +34,6 @@ func NewGeminiClient() *GeminiClient {
 	}
 }
 
-// rotateKey rotates to the next API key in the list
 func (c *GeminiClient) rotateKey() bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()

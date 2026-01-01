@@ -3,6 +3,7 @@ package openclash
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/yingxiaomo/homeops/pkg/ai"
@@ -11,26 +12,49 @@ import (
 	tele "gopkg.in/telebot.v3"
 )
 
+var (
+	isAnalyzing bool
+	analyzeLock sync.Mutex
+)
+
 func HandleAIAnalyze(c tele.Context) error {
-	// Check Admin Permission
 	if !utils.IsAdmin(c.Sender().ID) {
 		return c.Respond(&tele.CallbackResponse{Text: "⛔ 仅限管理员使用", ShowAlert: true})
 	}
 
+	analyzeLock.Lock()
+	if isAnalyzing {
+		analyzeLock.Unlock()
+		return c.Respond(&tele.CallbackResponse{Text: "⏳ 正在进行中，请稍候...", ShowAlert: true})
+	}
+	isAnalyzing = true
+	analyzeLock.Unlock()
+
+	defer func() {
+	}()
+
 	c.Respond(&tele.CallbackResponse{Text: "🚀 启动 OpenClash 诊断..."})
 
-	// Update UI to show progress
 	err := c.Edit("🔍 正在初始化诊断环境...")
 	if err != nil {
+		analyzeLock.Lock()
+		isAnalyzing = false
+		analyzeLock.Unlock()
 		return err
 	}
 	msg := c.Message()
 
-	// Run analysis asynchronously
 	go func() {
-		client := NewClient()
+		defer func() {
+			analyzeLock.Lock()
+			isAnalyzing = false
+			analyzeLock.Unlock()
+		}()
 
-		// 1. Get current config
+		client := NewClient()
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		defer cancel()
+
 		config, err := client.GetConfig()
 		originalLevel := "info"
 		if err == nil && config != nil {
@@ -39,14 +63,17 @@ func HandleAIAnalyze(c tele.Context) error {
 			}
 		}
 
-		// 2. Switch to debug if needed
 		if originalLevel != "debug" {
 			c.Bot().Edit(msg, fmt.Sprintf("⚙️ 当前级别为 %s，正在临时切换至 debug...", originalLevel))
 			client.PatchConfig(map[string]interface{}{"log-level": "debug"})
-			time.Sleep(5 * time.Second)
+
+			select {
+			case <-time.After(5 * time.Second):
+			case <-ctx.Done():
+				return
+			}
 		}
 
-		// 3. Collect logs
 		c.Bot().Edit(msg, "📡 正在全量采集多源日志...")
 		diagCmd := "echo '--- [KERNEL LOG (DEBUG MODE)] ---'; tail -n 100 /tmp/openclash.log 2>/dev/null; " +
 			"echo '--- [STARTUP/PLUGIN LOG] ---'; tail -n 100 /tmp/openclash_start.log 2>/dev/null; " +
@@ -55,7 +82,6 @@ func HandleAIAnalyze(c tele.Context) error {
 
 		logs, err := openwrt.SSHExec(diagCmd)
 
-		// 4. Restore config
 		if originalLevel != "debug" {
 			client.PatchConfig(map[string]interface{}{"log-level": originalLevel})
 		}
@@ -69,7 +95,6 @@ func HandleAIAnalyze(c tele.Context) error {
 			return
 		}
 
-		// 5. AI Analyze
 		c.Bot().Edit(msg, "🤖 正在利用 Gemini 3.0 Pro 进行多维度联合分析...")
 
 		prompt := fmt.Sprintf(
@@ -83,9 +108,13 @@ func HandleAIAnalyze(c tele.Context) error {
 				"诊断聚合数据：\n%s", originalLevel, logs)
 
 		aiClient := ai.NewGeminiClient()
-		resp, err := aiClient.GenerateContent(context.Background(), prompt, nil)
+		resp, err := aiClient.GenerateContent(ctx, prompt, nil)
 		if err != nil {
-			c.Bot().Edit(msg, fmt.Sprintf("❌ 分析失败: %v", err), &tele.ReplyMarkup{
+			errMsg := fmt.Sprintf("❌ 分析失败: %v", err)
+			if ctx.Err() == context.DeadlineExceeded {
+				errMsg = "❌ 分析超时，请稍后重试"
+			}
+			c.Bot().Edit(msg, errMsg, &tele.ReplyMarkup{
 				InlineKeyboard: [][]tele.InlineButton{{
 					{Text: "🔙 返回", Data: "clash_main"},
 				}},
@@ -93,16 +122,12 @@ func HandleAIAnalyze(c tele.Context) error {
 			return
 		}
 
-		if len(resp) > 3800 {
-			resp = resp[:3800] + "\n...(内容过长已截断)"
-		}
-
 		resultText := fmt.Sprintf("📋 **AI OpenClash 综合诊断报告**\n-------------------\n%s", resp)
 
 		menu := &tele.ReplyMarkup{}
 		menu.Inline(menu.Row(menu.Data("🔙 返回", "clash_main")))
 
-		c.Bot().Edit(msg, resultText, tele.ModeMarkdown, menu)
+		utils.SendLongMessage(c, msg, resultText, menu)
 	}()
 
 	return nil

@@ -117,8 +117,7 @@ func (c *Client) GetVersion() (map[string]interface{}, error) {
 }
 
 func (c *Client) ReloadConfig() error {
-	// PUT /configs?force=true
-	// Body: {"path": "", "payload": ""}
+
 	body := map[string]string{"path": "", "payload": ""}
 	resp, err := c.request("PUT", "/configs?force=true", body)
 	if err != nil {
@@ -178,7 +177,6 @@ func (c *Client) GetConnections() (map[string]interface{}, error) {
 
 func (c *Client) PutProxy(group, node string) error {
 	body := map[string]string{"name": node}
-	// Escape the group name just in case
 	endpoint := fmt.Sprintf("/proxies/%s", url.PathEscape(group))
 	resp, err := c.request("PUT", endpoint, body)
 	if err != nil {

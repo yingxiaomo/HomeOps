@@ -82,7 +82,6 @@ func HandleAdgToggle(c tele.Context) error {
 	return HandleAdgMenu(c)
 }
 
-// General Settings
 func HandleAdgGeneral(c tele.Context) error {
 	client := NewAdGuardClient()
 	c.Respond(&tele.CallbackResponse{Text: "获取设置..."})
@@ -237,7 +236,6 @@ func handleAdgCycle(c tele.Context, endpoint string) error {
 	return HandleAdgGeneral(c)
 }
 
-// DNS Settings (Upstream/Bootstrap)
 func HandleAdgDns(c tele.Context) error {
 	client := NewAdGuardClient()
 	c.Respond(&tele.CallbackResponse{Text: "获取 DNS 信息..."})
@@ -466,12 +464,10 @@ func HandleAdgDhcpToggle(c tele.Context, data string) error {
 	}
 
 	st["enabled"] = val
-	// API requires v4/v6 fields to be present usually
 	client.SetDHCPConfig(st)
 	return HandleAdgDhcpConfig(c)
 }
 
-// Rules and Rewrites
 func HandleAdgRules(c tele.Context) error {
 	client := NewAdGuardClient()
 	c.Respond(&tele.CallbackResponse{Text: "获取规则..."})
@@ -547,7 +543,6 @@ func HandleAdgRestart(c tele.Context) error {
 	return c.Send("✅ AdGuard 服务已重启。")
 }
 
-// Wizard Handlers
 func HandleAdgWizardInput(c tele.Context, state map[string]interface{}) bool {
 	mode, ok := state["mode"].(string)
 	if !ok {
@@ -682,7 +677,6 @@ func HandleAdgStartWizard(c tele.Context, mode string, msg string) error {
 		"mode": mode,
 	})
 
-	// Determine cancel button destination
 	cancelBtn := "wrt_adg"
 	switch mode {
 	case "set_upstreams", "set_bootstrap":
