@@ -1,6 +1,6 @@
 services:
   bot:
-    image: docker.170011.xyz/yingxiaomo/homeops:latest
+    image: yingxiaomo/homeops:latest
     # build: . # 如果需要本地开发调试，请取消注释此行并注释掉 image 行
     container_name: homeops_bot
     restart: unless-stopped
@@ -14,14 +14,14 @@ services:
 
   # 自动更新服务
   watchtower:
-    image: docker.170011.xyz/containrrr/watchtower
+    image: containrrr/watchtower
     container_name: watchtower
     restart: unless-stopped
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - TZ=Asia/Shanghai
-    # --interval 300: 每 5 分钟检查一次
+    # --interval 600: 每 10 分钟检查一次
     # --cleanup: 更新后删除旧镜像，节省空间
     # homeops_bot: 指定只更新这一个容器
-    command: --interval 300 --cleanup homeops_bot
+    command: --interval 600 --cleanup homeops_bot

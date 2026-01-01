@@ -51,7 +51,7 @@
 # docker-compose.yml
 services:
   bot:
-    image: docker.170011.xyz/yingxiaomo/homeops:latest
+    image:yingxiaomo/homeops:latest
     container_name: homeops_bot
     restart: unless-stopped
     env_file: .env
@@ -61,7 +61,7 @@ services:
 
   # 自动更新服务 (可选)
   watchtower:
-    image: docker.170011.xyz/containrrr/watchtower
+    image:containrrr/watchtower
     container_name: watchtower
     restart: always
     volumes:
