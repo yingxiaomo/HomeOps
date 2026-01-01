@@ -58,6 +58,8 @@ services:
     network_mode: host
     volumes:
       - ./data:/app/data
+    environment:
+      - TZ=Asia/Shanghai
 
   # 自动更新服务 (可选)
   watchtower:
