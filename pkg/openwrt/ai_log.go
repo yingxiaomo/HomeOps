@@ -52,19 +52,9 @@ func HandleAIAnalyze(c tele.Context) error {
 		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 		defer cancel()
 
-		cmd := "logread | tail -n 100"
-		logs, err := SSHExec(cmd)
+		logs, err := GetLogs(100)
 		if err != nil {
 			c.Bot().Edit(msg, fmt.Sprintf("❌ 采集失败: %v", err), &tele.ReplyMarkup{
-				InlineKeyboard: [][]tele.InlineButton{{
-					{Text: "🔙 返回", Data: "wrt_main"},
-				}},
-			})
-			return
-		}
-
-		if strings.TrimSpace(logs) == "" {
-			c.Bot().Edit(msg, "❌ 日志为空", &tele.ReplyMarkup{
 				InlineKeyboard: [][]tele.InlineButton{{
 					{Text: "🔙 返回", Data: "wrt_main"},
 				}},
@@ -96,6 +86,7 @@ func HandleAIAnalyze(c tele.Context) error {
 		// Enable AI mode and save history
 		userID := c.Sender().ID
 		session.GlobalStore.Set(userID, "ai_mode", true)
+		session.GlobalStore.Set(userID, "ai_log_context", "openwrt") // Set context for follow-ups
 
 		// Save context for continuous chat
 		history := fmt.Sprintf("User: %s\nModel: %s\n", prompt, resp)

@@ -25,6 +25,7 @@ func (b *Bot) HandleAI(c tele.Context) error {
 
 	b.Store.Set(userID, "ai_mode", nil)
 	b.Store.Delete(userID, "ai_history")
+	b.Store.Delete(userID, "ai_log_context") // Clear log context on exit
 
 	menu := b.getMainMenu()
 
@@ -83,6 +84,29 @@ func (b *Bot) HandleText(c tele.Context) error {
 
 	msg, _ := b.TeleBot.Send(c.Sender(), "🤔 思考中...")
 
+	// --- Dynamic Log Fetching based on Context ---
+	freshLogs := ""
+	var logErr error
+	logContext := ""
+	if ctx := b.Store.Get(userID, "ai_log_context"); ctx != nil {
+		if s, ok := ctx.(string); ok {
+			logContext = s
+			b.TeleBot.Edit(msg, fmt.Sprintf("🔄 正在刷新 %s 最新日志...", logContext))
+			switch logContext {
+			case "openwrt":
+				freshLogs, logErr = openwrt.GetLogs(100)
+			case "openclash":
+				// For follow-ups, don't force debug level to avoid repeated switching.
+				freshLogs, logErr = openclash.GetDiagnosticLogs(false)
+			}
+			if logErr != nil {
+				c.Send(fmt.Sprintf("⚠️ 无法获取最新日志: %v\n将基于历史进行回答。", logErr))
+			}
+			b.TeleBot.Edit(msg, "🤔 思考中...")
+		}
+	}
+	// --- End of Dynamic Log Fetching ---
+
 	// Build prompt with history if available
 	prompt := c.Text()
 	history := ""
@@ -93,8 +117,12 @@ func (b *Bot) HandleText(c tele.Context) error {
 			if len(history) > 20000 {
 				history = history[len(history)-20000:]
 			}
-			prompt = history + "User: " + c.Text() + "\n"
+			prompt = history + "\nUser: " + c.Text()
 		}
+	}
+
+	if freshLogs != "" {
+		prompt += fmt.Sprintf("\n\n--- [最新日志参考] ---\n%s\n--- [日志结束] ---", freshLogs)
 	}
 
 	resp, err := b.Gemini.GenerateContent(context.Background(), prompt, nil)
