@@ -4,6 +4,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -32,6 +33,18 @@ var AppConfig *Config
 
 func LoadConfig() {
 	godotenv.Load(".env")
+
+	// Set timezone to Asia/Shanghai
+	if tz := os.Getenv("TZ"); tz != "" {
+		if loc, err := time.LoadLocation(tz); err == nil {
+			time.Local = loc
+		}
+	} else {
+		// Default to Asia/Shanghai if TZ not set
+		if loc, err := time.LoadLocation("Asia/Shanghai"); err == nil {
+			time.Local = loc
+		}
+	}
 
 	AppConfig = &Config{
 		BotToken:           os.Getenv("TG_BOT_TOKEN"),
