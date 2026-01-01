@@ -127,6 +127,7 @@ func HandleAIAnalyze(c tele.Context) error {
 		menu := &tele.ReplyMarkup{}
 		menu.Inline(menu.Row(menu.Data("🔙 返回", "clash_main")))
 
+		// Use utils.SendLongMessage to handle splitting and markdown safety
 		utils.SendLongMessage(c, msg, resultText, menu)
 	}()
 

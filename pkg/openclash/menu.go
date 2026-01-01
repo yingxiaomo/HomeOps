@@ -41,7 +41,7 @@ func HandleMenu(c tele.Context) error {
 		menu.Row(menu.Data("🔙 返回主控台", "start_main")),
 	)
 
-	return c.EditOrSend(txt, menu, tele.ModeMarkdown)
+	return utils.SendLongMessage(c, nil, txt, menu)
 }
 
 func HandleCallback(c tele.Context, data string) error {
