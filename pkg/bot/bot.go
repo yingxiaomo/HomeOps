@@ -1,7 +1,6 @@
 package bot
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"net/url"
@@ -119,9 +118,9 @@ func (b *Bot) AuthMiddleware(next tele.HandlerFunc) tele.HandlerFunc {
 func (b *Bot) getMainMenu() *tele.ReplyMarkup {
 	menu := &tele.ReplyMarkup{}
 	menu.Inline(
-		menu.Row(menu.Data("🤖 AI 助手", "ai_toggle"), menu.Data("📡 OpenWrt", "wrt_main")),
-		menu.Row(menu.Data("🚀 OpenClash", "clash_main"), menu.Data("📧 临时邮箱", "mail_main")),
-		menu.Row(menu.Data("🖼️ 贴纸转换", "sticker_main")),
+		menu.Row(menu.Data("🤖 AI 助手", "ai_toggle"), menu.Data("� 批量输入", "batch_start")),
+		menu.Row(menu.Data("📡 OpenWrt", "wrt_main"), menu.Data("🚀 OpenClash", "clash_main")),
+		menu.Row(menu.Data("📧 临时邮箱", "mail_main"), menu.Data("🖼️ 贴纸转换", "sticker_main")),
 	)
 	return menu
 }
@@ -140,6 +139,10 @@ func (b *Bot) HandleCallback(c tele.Context) error {
 		return b.HandleStart(c)
 	case data == "ai_toggle":
 		return b.HandleAI(c)
+	case data == "batch_start":
+		return b.HandleBatchStart(c)
+	case data == "batch_end":
+		return b.HandleBatchEnd(c)
 	case strings.HasPrefix(data, "wrt_"):
 		if err := openwrt.HandleCallback(c, data); err != nil {
 			log.Printf("Error handling OpenWrt callback: %v", err)
