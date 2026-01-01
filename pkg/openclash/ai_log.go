@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/yingxiaomo/homeops/pkg/ai"
-	"github.com/yingxiaomo/homeops/pkg/openwrt"
 	"github.com/yingxiaomo/homeops/pkg/session"
 	"github.com/yingxiaomo/homeops/pkg/utils"
 	tele "gopkg.in/telebot.v3"
@@ -51,6 +50,9 @@ func HandleAIAnalyze(c tele.Context) error {
 			isAnalyzing = false
 			analyzeLock.Unlock()
 		}()
+
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+		defer cancel()
 
 		// For the first time, collect logs with debug level enabled.
 		// For follow-ups, we can just grab the standard logs.
