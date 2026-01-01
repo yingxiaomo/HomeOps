@@ -175,12 +175,45 @@ func EscapeMarkdown(text string) string {
 func SendLongMessage(c tele.Context, msgToEdit *tele.Message, text string, menu *tele.ReplyMarkup) error {
 	const maxLen = 3800 // Leave some buffer for markdown overhead
 
-	if len(text) <= maxLen {
-		if msgToEdit != nil {
-			_, err := c.Bot().Edit(msgToEdit, text, tele.ModeMarkdown, menu)
-			return err
+	// Helper function to send or edit with fallback
+	sendOrEdit := func(msg *tele.Message, txt string, opts ...interface{}) error {
+		// First try with provided options (Markdown)
+		var err error
+		if msg != nil {
+			_, err = c.Bot().Edit(msg, txt, opts...)
+		} else {
+			_, err = c.Bot().Send(c.Recipient(), txt, opts...)
 		}
-		return c.Send(text, tele.ModeMarkdown, menu)
+
+		// If successful, return
+		if err == nil {
+			return nil
+		}
+
+		// If error is about parsing, try plain text
+		// We filter options to remove parsing modes
+		var plainOpts []interface{}
+		for _, opt := range opts {
+			if _, ok := opt.(tele.ParseMode); !ok {
+				plainOpts = append(plainOpts, opt)
+			}
+		}
+
+		if msg != nil {
+			_, err = c.Bot().Edit(msg, txt, plainOpts...)
+		} else {
+			_, err = c.Bot().Send(c.Recipient(), txt, plainOpts...)
+		}
+		return err
+	}
+
+	if len(text) <= maxLen {
+		var opts []interface{}
+		opts = append(opts, tele.ModeMarkdown)
+		if menu != nil {
+			opts = append(opts, menu)
+		}
+		return sendOrEdit(msgToEdit, text, opts...)
 	}
 
 	chunks := SplitText(text, maxLen)
@@ -192,18 +225,22 @@ func SendLongMessage(c tele.Context, msgToEdit *tele.Message, text string, menu 
 			opts = append(opts, menu)
 		}
 
-		if i == 0 && msgToEdit != nil {
-			_, err := c.Bot().Edit(msgToEdit, chunk, opts...)
-			if err != nil {
-				// If edit fails (e.g. message too old), try sending
-				_, err = c.Bot().Send(c.Recipient(), chunk, opts...)
-				if err != nil {
-					return err
-				}
-			}
-		} else {
-			_, err := c.Bot().Send(c.Recipient(), chunk, opts...)
-			if err != nil {
+		// For chunks, only the first one can be an Edit
+		targetMsg := msgToEdit
+		if i > 0 {
+			targetMsg = nil // Subsequent chunks are always new messages
+		}
+
+		err := sendOrEdit(targetMsg, chunk, opts...)
+		if err != nil {
+			// If edit fails specifically (e.g. message too old/deleted), 
+			// sendOrEdit might have already retried as plain text and failed,
+			// or we might want to fallback to Send if Edit is impossible.
+			// Simple fallback: if failure was on Edit, try Send (as plain text to be safe or retry logic)
+			if targetMsg != nil {
+				// Fallback to sending as a new message if editing failed completely
+				sendOrEdit(nil, chunk, opts...)
+			} else {
 				return err
 			}
 		}
