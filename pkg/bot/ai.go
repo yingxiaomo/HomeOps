@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"time"
 
+	"github.com/yingxiaomo/homeops/pkg/openclash"
 	"github.com/yingxiaomo/homeops/pkg/openwrt"
 	"github.com/yingxiaomo/homeops/pkg/utils"
 	tele "gopkg.in/telebot.v3"
@@ -101,6 +103,9 @@ func (b *Bot) HandleText(c tele.Context) error {
 			}
 			if logErr != nil {
 				c.Send(fmt.Sprintf("⚠️ 无法获取最新日志: %v\n将基于历史进行回答。", logErr))
+			} else {
+				// Sanitize the logs to ensure they are valid UTF-8
+				freshLogs = strings.ToValidUTF8(freshLogs, "�")
 			}
 			b.TeleBot.Edit(msg, "🤔 思考中...")
 		}
