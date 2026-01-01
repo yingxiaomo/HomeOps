@@ -1,6 +1,6 @@
 services:
   bot:
-    image: docker.m.daocloud.io/yingxiaomo/homeops:latest
+    image: docker.170011.xyz/yingxiaomo/homeops:latest
     # build: . # 如果需要本地开发调试，请取消注释此行并注释掉 image 行
     container_name: homeops_bot
     restart: unless-stopped
@@ -14,7 +14,7 @@ services:
 
   # 自动更新服务
   watchtower:
-    image: docker.m.daocloud.io/containrrr/watchtower
+    image: docker.170011.xyz/containrrr/watchtower
     container_name: watchtower
     restart: unless-stopped
     volumes:
