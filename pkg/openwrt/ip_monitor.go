@@ -159,7 +159,10 @@ func checkIPJob(b *tele.Bot) {
 		saveStoredIPs(stored)
 		adminID := config.AppConfig.AdminID
 		if adminID != 0 {
-			_, err := b.Send(&tele.User{ID: adminID}, msg, tele.ModeMarkdown)
+			menu := &tele.ReplyMarkup{}
+			menu.Inline(menu.Row(menu.Data("🔙 返回主菜单", "start_main")))
+
+			_, err := b.Send(&tele.User{ID: adminID}, msg, menu, tele.ModeMarkdown)
 			if err != nil {
 				log.Printf("Failed to send IP notification: %v", err)
 			}

@@ -51,7 +51,7 @@
 # docker-compose.yml
 services:
   bot:
-    image: yingxiaomo/homeops:latest
+    image: docker.m.daocloud.io/yingxiaomo/homeops:latest
     container_name: homeops_bot
     restart: unless-stopped
     env_file: .env
@@ -61,12 +61,14 @@ services:
 
   # 自动更新服务 (可选)
   watchtower:
-    image: containrrr/watchtower
+    image: docker.m.daocloud.io/containrrr/watchtower
     container_name: watchtower
-    restart: unless-stopped
+    restart: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    command: --interval 300 --cleanup
+    # --interval 300: 每 5 分钟检查一次
+    # --cleanup: 更新后删除旧镜像，节省空间
+    command: --interval 300 --cleanup homeops_bot
 ```
 
 启动命令：

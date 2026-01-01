@@ -31,7 +31,9 @@ func (b *Bot) HandleStickerCallback(c tele.Context, data string) error {
 
 func (b *Bot) HandleSticker(c tele.Context) error {
 	if c.Message().Sticker.Animated || c.Message().Sticker.Video {
-		return c.Send("❌ 仅支持静态贴纸。")
+		menu := &tele.ReplyMarkup{}
+		menu.Inline(menu.Row(menu.Data("🔙 返回", "sticker_main")))
+		return c.Send("❌ 仅支持静态贴纸。", menu)
 	}
 
 	msg, _ := b.TeleBot.Send(c.Sender(), "⏳ 正在转换...")
@@ -89,7 +91,10 @@ func (b *Bot) HandleSticker(c tele.Context) error {
 		FileName: fmt.Sprintf("sticker_%s.png", c.Message().Sticker.UniqueID),
 	}
 
-	_, err = b.TeleBot.Send(c.Sender(), doc)
+	menu := &tele.ReplyMarkup{}
+	menu.Inline(menu.Row(menu.Data("🔙 返回", "sticker_main")))
+
+	_, err = b.TeleBot.Send(c.Sender(), doc, menu)
 	b.TeleBot.Delete(msg)
 	return err
 }

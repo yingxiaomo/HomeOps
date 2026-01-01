@@ -1,6 +1,6 @@
 services:
   bot:
-    image: yingxiaomo/homeops:latest
+    image: docker.m.daocloud.io/yingxiaomo/homeops:latest
     # build: . # 如果需要本地开发调试，请取消注释此行并注释掉 image 行
     container_name: homeops_bot
     restart: unless-stopped
@@ -14,7 +14,7 @@ services:
 
   # 自动更新服务
   watchtower:
-    image: containrrr/watchtower
+    image: docker.m.daocloud.io/containrrr/watchtower
     container_name: watchtower
     restart: unless-stopped
     volumes:
@@ -23,4 +23,5 @@ services:
       - TZ=Asia/Shanghai
     # --interval 300: 每 5 分钟检查一次
     # --cleanup: 更新后删除旧镜像，节省空间
-    command: --interval 300 --cleanup
+    # homeops_bot: 指定只更新这一个容器
+    command: --interval 300 --cleanup homeops_bot

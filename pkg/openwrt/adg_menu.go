@@ -540,7 +540,11 @@ func HandleAdgFilters(c tele.Context) error {
 func HandleAdgRestart(c tele.Context) error {
 	c.Respond(&tele.CallbackResponse{Text: "正在重启 AdGuard..."})
 	SSHExec("/etc/init.d/AdGuardHome restart || /etc/init.d/adguardhome restart")
-	return c.Send("✅ AdGuard 服务已重启。")
+
+	menu := &tele.ReplyMarkup{}
+	menu.Inline(menu.Row(menu.Data("🔙 返回", "wrt_adg")))
+
+	return c.Send("✅ AdGuard 服务已重启。", menu)
 }
 
 func HandleAdgWizardInput(c tele.Context, state map[string]interface{}) bool {
@@ -552,6 +556,23 @@ func HandleAdgWizardInput(c tele.Context, state map[string]interface{}) bool {
 	client := NewAdGuardClient()
 	userID := c.Sender().ID
 
+	backData := "wrt_adg"
+	switch mode {
+	case "set_upstreams", "set_bootstrap":
+		backData = "wrt_adg_dns"
+	case "set_ratelimit", "set_cache":
+		backData = "wrt_adg_dns_advanced"
+	case "edit_rules":
+		backData = "wrt_adg_rules"
+	case "add_filter", "del_filter":
+		backData = "wrt_adg_filters"
+	}
+
+	menu := &tele.ReplyMarkup{}
+	menu.Inline(menu.Row(menu.Data("🔙 返回", backData)))
+
+	defer session.GlobalStore.Delete(userID, "adg_wizard")
+
 	switch mode {
 	case "set_upstreams":
 		lines := strings.Split(text, "\n")
@@ -559,9 +580,9 @@ func HandleAdgWizardInput(c tele.Context, state map[string]interface{}) bool {
 		if cfg != nil {
 			cfg["upstream_dns"] = lines
 			client.SetDNSConfig(cfg)
-			c.Send("✅ 已更新上游 DNS。")
+			c.Send("✅ 已更新上游 DNS。", menu)
 		} else {
-			c.Send("❌ 更新失败。")
+			c.Send("❌ 更新失败。", menu)
 		}
 	case "set_bootstrap":
 		lines := strings.Split(text, "\n")
@@ -569,9 +590,9 @@ func HandleAdgWizardInput(c tele.Context, state map[string]interface{}) bool {
 		if cfg != nil {
 			cfg["bootstrap_dns"] = lines
 			client.SetDNSConfig(cfg)
-			c.Send("✅ 已更新 Bootstrap DNS。")
+			c.Send("✅ 已更新 Bootstrap DNS。", menu)
 		} else {
-			c.Send("❌ 更新失败。")
+			c.Send("❌ 更新失败。", menu)
 		}
 	case "edit_rules":
 		rule := strings.TrimSpace(text)
@@ -601,7 +622,9 @@ func HandleAdgWizardInput(c tele.Context, state map[string]interface{}) bool {
 				client.SetRules(newRules)
 				msg = fmt.Sprintf("✅ 已添加规则: `%s`", rule)
 			}
-			c.Send(msg, tele.ModeMarkdown)
+			c.Send(msg, tele.ModeMarkdown, menu)
+		} else {
+			c.Send("❌ 获取规则失败。", menu)
 		}
 	case "set_ratelimit":
 		val, err := strconv.Atoi(text)
@@ -610,10 +633,12 @@ func HandleAdgWizardInput(c tele.Context, state map[string]interface{}) bool {
 			if cfg != nil {
 				cfg["ratelimit"] = val
 				client.SetDNSConfig(cfg)
-				c.Send(fmt.Sprintf("✅ 速率限制已设置为 %d/s。", val))
+				c.Send(fmt.Sprintf("✅ 速率限制已设置为 %d/s。", val), menu)
+			} else {
+				c.Send("❌ 获取配置失败。", menu)
 			}
 		} else {
-			c.Send("❌ 无效的数字。")
+			c.Send("❌ 无效的数字。", menu)
 		}
 	case "set_cache":
 		val, err := strconv.Atoi(text)
@@ -622,52 +647,36 @@ func HandleAdgWizardInput(c tele.Context, state map[string]interface{}) bool {
 			if cfg != nil {
 				cfg["cache_size"] = val * 1024 * 1024
 				client.SetDNSConfig(cfg)
-				c.Send(fmt.Sprintf("✅ 缓存大小已设置为 %d MB。", val))
+				c.Send(fmt.Sprintf("✅ 缓存大小已设置为 %d MB。", val), menu)
+			} else {
+				c.Send("❌ 获取配置失败。", menu)
 			}
 		} else {
-			c.Send("❌ 无效的数字。")
+			c.Send("❌ 无效的数字。", menu)
 		}
 	case "add_filter":
 		parts := strings.SplitN(text, " ", 2)
 		if len(parts) == 2 {
 			err := client.AddFilter(parts[0], parts[1], false)
 			if err == nil {
-				c.Send(fmt.Sprintf("✅ 已添加过滤器: %s", parts[0]))
+				c.Send(fmt.Sprintf("✅ 已添加过滤器: %s", parts[0]), menu)
 			} else {
-				c.Send(fmt.Sprintf("❌ 添加失败: %v", err))
+				c.Send(fmt.Sprintf("❌ 添加失败: %v", err), menu)
 			}
 		} else {
-			c.Send("❌ 格式错误，请使用: 名称 URL")
+			c.Send("❌ 格式错误，请使用: 名称 URL", menu)
 		}
 	case "del_filter":
 		url := strings.TrimSpace(text)
 		err := client.RemoveFilter(url, false)
 		if err == nil {
-			c.Send("✅ 已删除过滤器。")
+			c.Send("✅ 已删除过滤器。", menu)
 		} else {
-			c.Send(fmt.Sprintf("❌ 删除失败: %v", err))
+			c.Send(fmt.Sprintf("❌ 删除失败: %v", err), menu)
 		}
 	default:
 		return false
 	}
-
-	session.GlobalStore.Delete(userID, "adg_wizard")
-
-	backBtn := "wrt_adg"
-	switch mode {
-	case "set_upstreams", "set_bootstrap":
-		backBtn = "wrt_adg_dns"
-	case "set_ratelimit", "set_cache":
-		backBtn = "wrt_adg_dns_advanced"
-	case "edit_rules":
-		backBtn = "wrt_adg_rules"
-	case "add_filter", "del_filter":
-		backBtn = "wrt_adg_filters"
-	}
-
-	menu := &tele.ReplyMarkup{}
-	menu.Inline(menu.Row(menu.Data("🔙 返回", backBtn)))
-	c.Send("✅ 操作已完成。", menu)
 
 	return true
 }

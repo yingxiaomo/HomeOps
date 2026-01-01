@@ -105,7 +105,11 @@ func HandleRebootConfirm(c tele.Context) error {
 
 func HandleRebootDo(c tele.Context) error {
 	c.Respond(&tele.CallbackResponse{Text: "指令已发送"})
-	c.Edit("🚀 正在重启路由器，请等待网络恢复...")
+
+	menu := &tele.ReplyMarkup{}
+	menu.Inline(menu.Row(menu.Data("🔙 返回主菜单", "start_main")))
+
+	c.Edit("🚀 正在重启路由器，请等待网络恢复...", menu)
 	go func() {
 		SSHExec("reboot")
 	}()
