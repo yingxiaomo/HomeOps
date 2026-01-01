@@ -24,6 +24,7 @@ func (b *Bot) HandleAI(c tele.Context) error {
 	}
 
 	b.Store.Set(userID, "ai_mode", nil)
+	b.Store.Delete(userID, "ai_history")
 
 	menu := b.getMainMenu()
 
@@ -82,10 +83,36 @@ func (b *Bot) HandleText(c tele.Context) error {
 
 	msg, _ := b.TeleBot.Send(c.Sender(), "🤔 思考中...")
 
-	resp, err := b.Gemini.GenerateContent(context.Background(), c.Text(), nil)
+	// Build prompt with history if available
+	prompt := c.Text()
+	history := ""
+	if h := b.Store.Get(userID, "ai_history"); h != nil {
+		if hStr, ok := h.(string); ok {
+			history = hStr
+			// Limit history length to avoid token limits (simple char limit for now)
+			if len(history) > 20000 {
+				history = history[len(history)-20000:]
+			}
+			prompt = history + "User: " + c.Text() + "\n"
+		}
+	}
+
+	resp, err := b.Gemini.GenerateContent(context.Background(), prompt, nil)
 	if err != nil {
 		_, err = b.TeleBot.Edit(msg, fmt.Sprintf("❌ Error: %v", err))
 		return err
+	}
+
+	// Update history
+	if history != "" || b.Store.Get(userID, "ai_mode") != nil {
+		newHistory := history 
+		if newHistory == "" {
+			newHistory = "User: " + c.Text() + "\n"
+		} else {
+			newHistory += "User: " + c.Text() + "\n"
+		}
+		newHistory += "Model: " + resp + "\n"
+		b.Store.Set(userID, "ai_history", newHistory)
 	}
 
 	menu := &tele.ReplyMarkup{}
