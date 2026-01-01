@@ -51,7 +51,7 @@
 # docker-compose.yml
 services:
   bot:
-    image:yingxiaomo/homeops:latest
+    image: yingxiaomo/homeops:latest
     container_name: homeops_bot
     restart: unless-stopped
     env_file: .env
@@ -61,7 +61,7 @@ services:
 
   # 自动更新服务 (可选)
   watchtower:
-    image:containrrr/watchtower
+    image: containrrr/watchtower
     container_name: watchtower
     restart: always
     volumes:
@@ -73,14 +73,14 @@ services:
 
 启动命令：
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 #### 方式 B：手动构建
 如果您想运行本地修改后的版本：
 
 ```bash
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 ### 2. 本地运行
