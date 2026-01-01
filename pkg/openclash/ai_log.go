@@ -105,7 +105,7 @@ func HandleAIAnalyze(c tele.Context) error {
 
 		menu := &tele.ReplyMarkup{}
 		menu.Inline(
-			menu.Row(menu.Data("🚪 退出 AI 模式", "ai_toggle")),
+			menu.Row(menu.Data("� 批量输入", "batch_start"), menu.Data("�🚪 退出 AI 模式", "ai_toggle")),
 			menu.Row(menu.Data("🔙 返回", "clash_main")),
 		)
 

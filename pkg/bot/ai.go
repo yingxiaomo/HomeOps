@@ -20,7 +20,7 @@ func (b *Bot) HandleAI(c tele.Context) error {
 	if current == nil {
 		b.Store.Set(userID, "ai_mode", true)
 		menu := &tele.ReplyMarkup{}
-		menu.Inline(menu.Row(menu.Data("🚪 退出 AI 模式", "ai_toggle")))
+		menu.Inline(menu.Row(menu.Data("� 批量输入", "batch_start"), menu.Data("�🚪 退出 AI 模式", "ai_toggle")))
 		return c.Send("🧠 **AI 模式已开启**\n发送文本或图片即可对话。", menu)
 	}
 
@@ -216,7 +216,18 @@ func (b *Bot) handleBatchMessage(c tele.Context) error {
 
 	// Send confirmation
 	menu := &tele.ReplyMarkup{}
-	menu.Inline(menu.Row(menu.Data("✅ 完成输入", "batch_end"), menu.Data("❌ 取消", "ai_toggle")))
+	// Set cancel button based on context
+	cancelData := "ai_toggle" // default
+	if batchCtx := b.Store.Get(userID, "batch_context"); batchCtx != nil {
+		if ctx, ok := batchCtx.(string); ok {
+			if ctx == "openwrt" {
+				cancelData = "wrt_main"
+			} else if ctx == "openclash" {
+				cancelData = "clash_main"
+			}
+		}
+	}
+	menu.Inline(menu.Row(menu.Data("✅ 完成输入", "batch_end"), menu.Data("❌ 取消", cancelData)))
 
 	message := fmt.Sprintf("📝 已收集 %d 条消息\n\n最新消息: %s\n\n继续发送更多消息，或点击\"✅ 完成输入\"开始处理。", len(msgs), c.Text())
 	return c.Send(message, menu)
@@ -225,12 +236,28 @@ func (b *Bot) handleBatchMessage(c tele.Context) error {
 func (b *Bot) HandleBatchStart(c tele.Context) error {
 	userID := c.Sender().ID
 
+	// Record the context where batch input was started
+	batchContext := "ai" // default to AI mode
+	if logCtx := b.Store.Get(userID, "ai_log_context"); logCtx != nil {
+		if ctx, ok := logCtx.(string); ok {
+			batchContext = ctx
+		}
+	}
+	b.Store.Set(userID, "batch_context", batchContext)
+
 	// Set batch input mode
 	b.Store.Set(userID, "batch_mode", true)
 	b.Store.Set(userID, "batch_messages", []string{})
 
 	menu := &tele.ReplyMarkup{}
-	menu.Inline(menu.Row(menu.Data("✅ 完成输入", "batch_end"), menu.Data("❌ 取消", "ai_toggle")))
+	// Set cancel button based on context
+	cancelData := "ai_toggle" // default
+	if batchContext == "openwrt" {
+		cancelData = "wrt_main"
+	} else if batchContext == "openclash" {
+		cancelData = "clash_main"
+	}
+	menu.Inline(menu.Row(menu.Data("✅ 完成输入", "batch_end"), menu.Data("❌ 取消", cancelData)))
 
 	return c.Edit("📝 **批量输入模式已开启**\n\n请发送多条消息，我会将它们收集起来一起处理。\n\n发送完成后点击\"✅ 完成输入\"按钮。", menu)
 }
@@ -320,8 +347,32 @@ func (b *Bot) HandleBatchEnd(c tele.Context) error {
 		b.Store.Set(userID, "ai_history", newHistory)
 	}
 
+	// Set menu based on batch context
 	menu := &tele.ReplyMarkup{}
-	menu.Inline(menu.Row(menu.Data("🚪 退出 AI 模式", "ai_toggle")))
+	batchContext := b.Store.Get(userID, "batch_context")
+	if batchContext != nil {
+		if ctx, ok := batchContext.(string); ok {
+			switch ctx {
+			case "openwrt":
+				menu.Inline(
+					menu.Row(menu.Data("📝 批量输入", "batch_start"), menu.Data("🚪 退出 AI 模式", "ai_toggle")),
+					menu.Row(menu.Data("🔙 返回", "wrt_main")),
+				)
+			case "openclash":
+				menu.Inline(
+					menu.Row(menu.Data("📝 批量输入", "batch_start"), menu.Data("🚪 退出 AI 模式", "ai_toggle")),
+					menu.Row(menu.Data("🔙 返回", "clash_main")),
+				)
+			default: // "ai" or other cases
+				menu.Inline(menu.Row(menu.Data("📝 批量输入", "batch_start"), menu.Data("🚪 退出 AI 模式", "ai_toggle")))
+			}
+		}
+	} else {
+		menu.Inline(menu.Row(menu.Data("📝 批量输入", "batch_start"), menu.Data("🚪 退出 AI 模式", "ai_toggle")))
+	}
+
+	// Clear batch context
+	b.Store.Set(userID, "batch_context", nil)
 
 	utils.SendLongMessage(c, msg, resp, menu)
 	return nil
