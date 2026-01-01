@@ -3,6 +3,7 @@ package openwrt
 import (
 	"strings"
 
+	"github.com/yingxiaomo/homeops/pkg/utils"
 	tele "gopkg.in/telebot.v3"
 )
 
